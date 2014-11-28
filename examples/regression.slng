@@ -1,0 +1,15 @@
+Type Data
+    Set 5 x: Number
+    y: ???
+
+File CSV Input regression.in
+    [d in Data data]
+        d.x, d.y
+
+File CSV Input unknowns.in
+    [d in Data unknowns]
+        d.x
+
+File CSV regression.out
+    [d in Data unknowns]
+        d.y

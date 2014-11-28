@@ -1,0 +1,20 @@
+Type Person
+	money: Positive Number
+	salary: Positive Number
+	Default State working
+
+	State eating
+		->
+			money-=10
+			# Time.Day.random(8,10) || Time.Day.random(11,13) || Time.Day.random(18,20)
+		<-
+			# Time.Hours(1)
+	State sleeping
+		->
+			# Time.Day.random(22,24)
+		<-
+			# Time.Hours(8)
+
+	State working
+		->
+			money+=salary*Time

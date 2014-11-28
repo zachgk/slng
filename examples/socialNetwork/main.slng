@@ -1,0 +1,22 @@
+Database
+	Set User users
+
+Type User
+	name: String
+    username: String
+    Secret password: String
+	Set friends: User
+
+State authenticated
+    ->
+        # login && User(username=username,password=password) in users
+        user = User(username=username,password=password)
+        Reroute "/"
+    <-
+        # Route "/logout"
+        user = Null
+        Reroute "/login"
+
+Serve
+    "/login" -> login.html
+    "/" -> index.html

@@ -1,0 +1,11 @@
+Type GnomeSet
+	setGnomes: Set{Int}
+	
+File LineASCII Input gnomes.in
+	numberGnomes
+	[g In numberGnomes GnomeSet gnomes]
+		g.setGnomes	
+
+File LineASCII Output gnomes.out
+	[g In gnomes]
+		sort(g.setGnomes)

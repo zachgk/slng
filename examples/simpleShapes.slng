@@ -1,0 +1,16 @@
+Type Circle
+	radius: Number
+	center: Vector
+	area: pi*radius^2
+	perimeter: 2*pi*radius
+
+Type Rectangle
+	length: Number
+	width: Number
+	area: length*width
+	perimeter: 2*length+2*width
+
+Type Square
+	length: Number
+	area: length^2
+	perimeter: 4*length

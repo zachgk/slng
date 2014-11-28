@@ -1,0 +1,17 @@
+Type Location
+	Set adjacent: Location
+	name: String
+
+Type Route
+	start: Location
+	end: Location
+	Set map: Location
+	OrderedList path: Location
+	length: sum([path Consecutive As x,y] distance(x,y))
+	# path[0] == start
+	# path[-1] == end
+	
+
+r = Route(map=locations, start=s,end=e)
+# min(r.length)
+Output r

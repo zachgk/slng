@@ -1,0 +1,12 @@
+html
+	head
+		title 
+	body
+        h2 Social Network
+        ul Friends
+            [f In user.friends]
+                li [f.name] [f.password]
+
+        h3 Add Friend
+        input[newFriendName]
+        input(type="submit")[newFriendSubmit]
