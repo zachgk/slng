@@ -2,3 +2,5 @@
 target/
 *.swo
 *.swp
+input.slng
+output.json
