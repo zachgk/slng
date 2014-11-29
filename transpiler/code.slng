@@ -1,0 +1,11 @@
+
+Type Circle
+    radius: Number
+    diameter: 2*radius
+    area: pi*radius^2
+Type Square
+    length: Number
+
+Let c = Circle(area=5)
+s = Square(area=c.area)
+Output s.length
