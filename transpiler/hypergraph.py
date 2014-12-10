@@ -1,4 +1,5 @@
 from collections import deque
+import re
 
 class Hypergraph:
 
@@ -54,7 +55,11 @@ class Hypergraph:
             newPath = path.copy()
             newPath.append(node)
             for n in neighbors:
-                queue.append( (n,newPath,g) )
+                if type(n) is Node:
+                    queue.append( (n.name,newPath,n.graph) )
+                    if n.graph not in nodes: nodes[n.graph] = n.graph.graph.nodes
+                else:
+                    queue.append( (n,newPath,g) )
         return t
 
 
@@ -66,3 +71,46 @@ class Subgraph:
     def setName(self,name):
         self.name = name
         return self
+
+    def addExternal(self,complete=False):
+        edges = self.parent.neighborEdges(self,complete=complete)
+        self.externalNodes = set()
+        self.externalEdges = set()
+        for e in edges:
+            rexpr = re.compile(self.name + "\.[a-zA-Z]+")
+            newNodes = {s[2:] for s in rexpr.findall(e[1]) }
+            for n in e[0]:
+                if n == self: continue
+                elif type(n) is Subgraph:
+                    rexpr = re.compile(n.name + "\.[a-zA-Z]+")
+                    for x in rexpr.findall(e[1]):
+                        newNodes.add(Node(x[2:],n))
+                else:
+                    newNodes.add(Node(n,self.parent))
+            self.externalEdges.add((frozenset(newNodes),e[1]))
+            self.externalNodes = self.externalNodes.union(newNodes)
+        self.graph.edges = self.graph.edges.union(self.externalEdges)
+        self.graph.nodes = self.graph.nodes.union(self.externalNodes)
+
+    def removeExternal(self):
+        self.graph.edges = self.graph.edges.difference(self.externalEdges)
+        self.graph.nodes = self.graph.nodes.difference(self.externalNodes)
+        
+
+    def tree(self, start, complete=False):
+        self.addExternal(complete=complete)
+        t = self.graph.tree(start, complete=complete)
+        self.removeExternal()
+        return t
+
+    def neighbors(self, node, complete=False):
+        self.addExternal(complete=complete)
+        n = self.graph.neighbors(node,complete=complete)
+        self.removeExternal()
+        return n
+
+
+class Node:
+    def __init__(self, name, graph):
+        self.name = name
+        self.graph = graph

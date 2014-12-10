@@ -7,7 +7,8 @@ def typeGraph(t, code):
     g.nodes = {p['binding'] for p in definition['properties']}
     for p in definition['properties']:
         if 'expression' in p:
-            g.addEdge( {p['binding']}.union({x for x in g.nodes if x in p['expression'] }),2 )
+            expr = p['binding'] + "=" + p['expression']
+            g.addEdge( {p['binding']}.union({x for x in g.nodes if x in p['expression'] }),expr )
     return g
 
 def getVarGraph(variables,code,typeGraphs):
@@ -15,17 +16,21 @@ def getVarGraph(variables,code,typeGraphs):
     varGraphs = {v:Subgraph(typeGraphs[code['vars'][v]['type']],g).setName(v) for v in variables}
     g.nodes = set(varGraphs.values())
     for v in variables:
-        e = set()
-        for x in variables:
-            if (x+'.') in list(code['vars'][v]['expressions'].values())[0]:
-                e.add(varGraphs[x])
-        if(len(e)>0):
-            e.add(varGraphs[v])
-            g.addEdge(e,2)
+        for prop,expr in code['vars'][v]['expressions'].items():
+            e = set()
+            for x in variables:
+                if (x+'.') in expr:
+                    e.add(varGraphs[x])
+            if(len(e)>0):
+                e.add(varGraphs[v])
+                fullExpr = v + "." + prop + "=" + expr
+                g.addEdge(e,fullExpr)
     return g
 
-def evaluate(expr):
-    return expr
+def evaluate(expr, varGraph):
+    s = varGraph.getNode('s')
+    # print(varGraph.tree(varGraph.getNode('s')))
+    return s.tree(s.graph.getNode('length'))
 
 with open('code.json') as f:
     code = json.loads(f.readline())
@@ -33,6 +38,5 @@ with open('code.json') as f:
     types = code['types'].keys()
     typeGraphs = {t:typeGraph(t,code) for t in types}
     varGraph= getVarGraph(variables,code,typeGraphs)
-    print(varGraph.tree(varGraph.getNode('c')))
     for o in code['output']:
-        print(evaluate(o))
+        print(evaluate(o, varGraph))
