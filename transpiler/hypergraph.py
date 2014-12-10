@@ -1,3 +1,5 @@
+from collections import deque
+
 class Hypergraph:
 
     def __init__(self):
@@ -35,21 +37,26 @@ class Hypergraph:
         neighbors.discard(node)
         return neighbors
 
-    def tree(self, start, nodes = -1, complete = False):
-        neighbors = self.neighbors(start,complete=complete)
+    def tree(self, start, complete = False):
+        t = {start: dict() }
+        nodes = {self: self.nodes}
+        queue = deque([(start,[],self)])
+        nodes[self].discard(start)
+        while(len(queue)>0):
+            node, path, g = queue.popleft()
+            neighbors = g.neighbors(node,complete=complete)
+            neighbors = neighbors.intersection(nodes[g])
+            nodes[g] = nodes[g].difference(neighbors)
+            nodes[g].discard(node)
+            lt = t
+            for p in path: lt = lt[p]
+            lt[node] = dict()
+            newPath = path.copy()
+            newPath.append(node)
+            for n in neighbors:
+                queue.append( (n,newPath,g) )
+        return t
 
-        if nodes != -1: neighbors = neighbors.intersection(nodes)
-        else: nodes = self.nodes
-
-        nodes = nodes.difference(neighbors)
-        nodes.discard(start)
-
-        tree = dict()
-        for n in neighbors:
-            x = self.tree(n,nodes=nodes,complete=complete)
-            for k in x.keys():
-                tree[k] = x[k]
-        return {start: tree}
 
 class Subgraph:
     def __init__(self,graph,parent):
