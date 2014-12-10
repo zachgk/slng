@@ -1,9 +1,18 @@
 class Hypergraph:
-    nodes = set()
-    edges = set()
+
+    def __init__(self):
+        self.nodes = set()
+        self.edges = set()
 
     def __str__(self): 
         return str((self.nodes,self.edges))
+
+    def getNode(self, name):
+        for n in self.nodes:
+            if type(n) is Subgraph and n.name == name: return n
+            elif n == name: return n
+        return None
+            
 
     def addEdge(self,nodes,data):
         self.edges.add((frozenset(nodes),data))
@@ -41,3 +50,12 @@ class Hypergraph:
             for k in x.keys():
                 tree[k] = x[k]
         return {start: tree}
+
+class Subgraph:
+    def __init__(self,graph,parent):
+        self.graph = graph
+        self.parent = parent
+
+    def setName(self,name):
+        self.name = name
+        return self
