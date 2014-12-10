@@ -1,0 +1,3 @@
+Convert vars expressions to array
+Handle edgesets
+Sets

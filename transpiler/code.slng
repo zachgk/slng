@@ -5,7 +5,8 @@ Type Circle
     area: pi*radius^2
 Type Square
     length: Number
+    area: length*length
 
-Let c = Circle(area=5)
+Let c = Circle(radius=5)
 s = Square(area=c.area)
 Output s.length
