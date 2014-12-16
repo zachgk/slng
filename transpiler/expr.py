@@ -1,0 +1,47 @@
+from pyparsing import Word, alphas, nums, Forward, ZeroOrMore, Or, Literal, Group, Regex
+from sympy import *
+
+class exprParser:
+    @staticmethod
+    def parse(expression, equation=False):
+        lparen = Literal("(").suppress()
+        rparen = Literal(")").suppress()
+        equal = Literal("=").suppress()
+        dot = Literal(".")
+        spec = {
+            "E": exp(1),
+            "Pi": pi
+        }
+
+        integer = Word(nums).setParseAction( lambda s,l,t: [ int(t[0]) ] )
+        decimal = Regex("[0-9]+\.[0-9]").setParseAction( lambda s,l,t: [float(t[0])])
+        special = Regex("[A-Z][a-zA-Z]*").setParseAction( lambda s,l,t: [spec[t[0]]])
+        var = Regex("[a-z][a-zA-Z]*").setParseAction( lambda s,l,t: [symbols(t[0])])
+        prop = Regex("[a-z][a-zA-Z]*\.[a-z][a-zA-Z]*").setParseAction( lambda s,l,t: [symbols(t[0])])
+        E = Literal("E").setParseAction( lambda s,l,t: [exp(1)] )
+
+        opn = {
+            "+": (lambda a,b: a+b ),
+            "-": (lambda a,b: a-b ),
+            "*": (lambda a,b: a*b ),
+            "/": (lambda a,b: a/b ),
+            "^": (lambda a,b: a**b )
+        }
+        ops = set(opn.keys())
+        ope = lambda s,l,t: print(opn[t[1]](t[0],t[2]))
+        def opClean(t):
+            # print(t)
+            if len(t)==1: return t
+            return opClean([opn[t[1]](t[0],t[2])]+t[3:])
+
+        expr = Forward()
+        paren = (lparen + expr + rparen).setParseAction( lambda s,l,t: print(t))
+        atom = paren | decimal | integer | E | special | var
+        multExpr = (atom + ZeroOrMore( Word("*/") + atom)).setParseAction( lambda s,l,t: opClean(t))
+        expr << (multExpr + ZeroOrMore( Word("+-") + multExpr)).setParseAction( lambda s,l,t: opClean(t))
+        equality = (expr + equal + expr).setParseAction( lambda s,l,t: Eq(t[0],t[1]) )
+
+        if equation: return equality.parseString(expression)[0]
+        else: return expr.parseString(expression)[0]
+
+print(exprParser.parse("1+2"))

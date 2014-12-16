@@ -21,10 +21,9 @@ def getVarGraph(variables,code,typeGraphs):
             for x in variables:
                 if (x+'.') in expr:
                     e.add(varGraphs[x])
-            if(len(e)>0):
-                e.add(varGraphs[v])
-                fullExpr = v + "." + prop + "=" + expr
-                g.addEdge(e,fullExpr)
+            e.add(varGraphs[v])
+            fullExpr = v + "." + prop + "=" + expr
+            g.addEdge(e,fullExpr)
     return g
 
 def evaluate(expr, varGraph):
