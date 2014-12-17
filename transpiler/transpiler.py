@@ -1,5 +1,6 @@
 import json
 from hypergraph import *
+from expr import exprParser
 
 def typeGraph(t, code):
     g = Hypergraph()
@@ -26,12 +27,6 @@ def getVarGraph(variables,code,typeGraphs):
             g.addEdge(e,fullExpr)
     return g
 
-def evaluate(expr, varGraph):
-    s = varGraph.getNode('s')
-    # print(varGraph.tree(varGraph.getNode('s')))
-    # return s.tree(s.graph.getNode('length'))
-    return s.treeCompute(s.graph.getNode('length'))
-
 with open('code.json') as f:
     code = json.loads(f.readline())
     variables = code['vars'].keys()
@@ -39,4 +34,4 @@ with open('code.json') as f:
     typeGraphs = {t:typeGraph(t,code) for t in types}
     varGraph= getVarGraph(variables,code,typeGraphs)
     for o in code['output']:
-        print(evaluate(o, varGraph))
+        print(exprParser.parse(o, main=varGraph))

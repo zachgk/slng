@@ -3,7 +3,7 @@ from sympy import *
 
 class exprParser:
     @staticmethod
-    def parse(expression, equation=False, subs=dict()):
+    def parse(expression, equation=False, subs=dict(), main=None):
         if not isinstance(expression,str): return expression
         lparen = Literal("(").suppress()
         rparen = Literal(")").suppress()
@@ -36,6 +36,15 @@ class exprParser:
         def opClean(t):
             if len(t)==1: return t
             return opClean([opn[t[1]](t[0],t[2])]+t[3:])
+
+        if main is not None:
+            def treeCompute(p):
+                split = p.split(".")
+                g = main.getNode(split[0])
+                comp = g.treeCompute(g.graph.getNode(split[1]))
+                res = solve(comp,symbols(p))
+                return res[0]
+            prop = prop.setParseAction( lambda s,l,t: [treeCompute(t[0])])
 
         expr = Forward()
         paren = (lparen + expr + rparen).setParseAction( lambda s,l,t: t)
