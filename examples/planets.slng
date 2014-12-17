@@ -10,5 +10,5 @@ Type Planet
 
 Type System
 	Set Planet planets
-	# [p In planets]
+	Bind [p In planets]
 		p.force = sum([other In (planets-p)] 6.676E-11*p.mass*other.mass/distance(p.position,other.position)^2)

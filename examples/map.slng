@@ -1,5 +1,5 @@
 Type Location
-	Set adjacent: Location
+	Symmetric Set adjacent: Location
 	name: String
 
 Type Route

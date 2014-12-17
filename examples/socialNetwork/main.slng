@@ -5,17 +5,22 @@ Type User
 	name: String
     username: String
     Secret password: String
-	Set friends: User
+	Symmetric Set friends: User
 
 State authenticated
     ->
-        # login && User(username=username,password=password) in users
+        # login && User(username=username,password=password) In users
         user = User(username=username,password=password)
         Reroute "/"
     <-
         # Route "/logout"
         user = Null
         Reroute "/login"
+
+Action
+    # newFriendSubmit && User(username=newFriendName) In users
+    user.friends += users{Element(username=newFriendName)}
+
 
 Serve
     "/login" -> login.html

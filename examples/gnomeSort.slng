@@ -8,4 +8,4 @@ File LineASCII Input gnomes.in
 
 File LineASCII Output gnomes.out
 	[g In gnomes]
-		sort(g.setGnomes)
+		g.setGnomes | Order Ascending
