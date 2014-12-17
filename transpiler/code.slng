@@ -2,7 +2,7 @@
 Type Circle
     radius: Number
     diameter: 2*radius
-    area: pi*radius^2
+    area: Pi*radius*radius
 Type Square
     length: Number
     area: length*length

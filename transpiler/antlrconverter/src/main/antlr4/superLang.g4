@@ -59,7 +59,7 @@ params
     : OPEN_PAREN (assignmentDeclaration (COMMA assignmentDeclaration)* )? CLOSE_PAREN;
 
 expression
-    : (INT | PLUS | TIMES | MINUS | DIVIDE | POWER | LowerName | prop)+;
+    : (INT | PLUS | TIMES | MINUS | DIVIDE | POWER | LowerName | UpperName | prop)+;
 
 dataType
     : NUMBER | VECTOR;

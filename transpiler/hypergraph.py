@@ -1,4 +1,5 @@
 from collections import deque
+from expr import *
 import re
 
 class Hypergraph:
@@ -38,11 +39,12 @@ class Hypergraph:
         neighbors.discard(node)
         return neighbors
 
-    def tree(self, start, complete = False):
-        t = {start: dict() }
-        nodes = {self: self.nodes}
-        queue = deque([(start,[],self)])
-        nodes[self].discard(start)
+    def tree(self, start, complete = False, graph=None):
+        if graph is None: graph = self
+        t = {Node(start,graph): dict() }
+        nodes = {graph: self.nodes}
+        queue = deque([(start,[],graph)])
+        nodes[graph].discard(start)
         while(len(queue)>0):
             node, path, g = queue.popleft()
             neighbors = g.neighbors(node,complete=complete)
@@ -51,9 +53,10 @@ class Hypergraph:
             nodes[g].discard(node)
             lt = t
             for p in path: lt = lt[p]
-            lt[node] = dict()
+            absNode = Node(node,g)
+            lt[absNode] = dict()
             newPath = path.copy()
-            newPath.append(node)
+            newPath.append(absNode)
             for n in neighbors:
                 if type(n) is Node:
                     queue.append( (n.name,newPath,n.graph) )
@@ -61,6 +64,29 @@ class Hypergraph:
                 else:
                     queue.append( (n,newPath,g) )
         return t
+
+    def treeCompute(self, start, graph=None):
+        if graph is None: graph = self
+        t = self.tree(start, complete=True, graph=graph)
+        return self.treeComputeRec(Node(start,graph),t)
+
+    def treeComputeRec(self, root, tree):
+        ne = root.graph.neighborEdges(root.name,complete=False)
+        rootCycles = {e for e in ne if e[0]==frozenset({root.name}) }
+        if len(rootCycles) == 1:
+            return list(rootCycles)[0][1]
+        else:
+            for r,t in tree.items():
+                rec = self.treeComputeRec(r,t)
+                if rec is not None:
+                    edge = {e for e in ne if r.name in e[0] and root.name in e[0]}
+                    exprs = {rec,list(edge)[0][1]}
+                    subs = {
+                        r.name: r.graph.name + "." + r.name,
+                        root.name: root.graph.name + "." + root.name
+                    }
+                    return exprParser.solve(exprs,root,subs=subs)
+        return None
 
 
 class Subgraph:
@@ -103,11 +129,24 @@ class Subgraph:
         self.removeExternal()
         return t
 
+    def treeCompute(self, start):
+        self.addExternal(complete=True)
+        t = self.graph.treeCompute(start, graph=self)
+        self.removeExternal()
+        return t
+
     def neighbors(self, node, complete=False):
         self.addExternal(complete=complete)
         n = self.graph.neighbors(node,complete=complete)
         self.removeExternal()
         return n
+
+    def neighborEdges(self, node, complete=False):
+        self.addExternal(complete=complete)
+        n = self.graph.neighborEdges(node,complete=complete)
+        self.removeExternal()
+        return n
+        
 
 
 class Node:

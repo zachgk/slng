@@ -1,3 +1,5 @@
-Convert vars expressions to array
-Handle edgesets
+Convert vars expressions to array in grammar and java parser
+Exponents in expression grammar
 Sets
+Conditions to handle ambiguous results (expr.solve)
+Handle errors in Slng code

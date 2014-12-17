@@ -29,7 +29,8 @@ def getVarGraph(variables,code,typeGraphs):
 def evaluate(expr, varGraph):
     s = varGraph.getNode('s')
     # print(varGraph.tree(varGraph.getNode('s')))
-    return s.tree(s.graph.getNode('length'))
+    # return s.tree(s.graph.getNode('length'))
+    return s.treeCompute(s.graph.getNode('length'))
 
 with open('code.json') as f:
     code = json.loads(f.readline())
