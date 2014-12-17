@@ -1,6 +1,7 @@
 import json
 from hypergraph import *
 from expr import exprParser
+from compose import Composer
 
 def typeGraph(t, code):
     g = Hypergraph()
@@ -28,10 +29,12 @@ def getVarGraph(variables,code,typeGraphs):
     return g
 
 with open('code.json') as f:
+    comp = Composer()
     code = json.loads(f.readline())
     variables = code['vars'].keys()
     types = code['types'].keys()
     typeGraphs = {t:typeGraph(t,code) for t in types}
     varGraph= getVarGraph(variables,code,typeGraphs)
     for o in code['output']:
-        print(exprParser.parse(o, main=varGraph))
+        comp.output(N(exprParser.parse(o, main=varGraph)))
+    comp.composeFile("code.cpp")
