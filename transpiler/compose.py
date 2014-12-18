@@ -4,6 +4,7 @@ class Composer:
 
     def __init__(self):
         self.var = -1
+        self.refs = 0
         self.imports = ""
         self.outputs = []
         self.includes = set()
@@ -18,6 +19,10 @@ class Composer:
             return char(int(n/26))+chr(n%26+97)
         self.var+=1
         return char(self.var) 
+
+    def refDispenser(self):
+        self.refs+=1
+        return "{" + str(self.refs) + "}"
 
     def getFile(self, filename, io):
         if filename not in self.files: 

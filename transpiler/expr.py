@@ -2,10 +2,14 @@ from pyparsing import Word, alphas, nums, Forward, ZeroOrMore, Or, Literal, Grou
 from sympy import *
 from common import *
 
+
 class exprParser:
     @staticmethod
-    def parse(expression, equation=False, subs=dict(), main=None):
+    def parse(expression, equation=False, subs=dict(), main=None, returnVars=False):
         if not isinstance(expression,str): return expression
+
+        varSet = set()
+
         lparen = Literal("(").suppress()
         rparen = Literal(")").suppress()
         equal = Literal("=").suppress()
@@ -15,16 +19,16 @@ class exprParser:
             "Pi": pi
         }
 
-        def sub(s):
-            if s in subs: return subs[s]
-            else: return s
+        def getSymbol(s):
+            varSet.add(s) 
+            if s in subs: s = subs[s]
+            return symbols(s)
 
         integer = Word(nums).setParseAction( lambda s,l,t: [ int(t[0]) ] )
         decimal = Regex("[0-9]+\.[0-9]").setParseAction( lambda s,l,t: [float(t[0])])
         special = Regex("[A-Z][a-zA-Z]*").setParseAction( lambda s,l,t: [spec[t[0]]])
-        var = Regex("[a-z][a-zA-Z]*").setParseAction( lambda s,l,t: [symbols(sub(t[0]))])
-        prop = Regex("[a-z][a-zA-Z]*\.[a-z][a-zA-Z]*").setParseAction( lambda s,l,t: [symbols(t[0])])
-        E = Literal("E").setParseAction( lambda s,l,t: [exp(1)] )
+        var = Regex("[a-z][a-zA-Z]*").setParseAction( lambda s,l,t: [getSymbol(t[0])])
+        prop = Regex("[a-z][a-zA-Z]*\.[a-z][a-zA-Z]*").setParseAction( lambda s,l,t: [getSymbol(t[0])])
 
         opn = {
             "+": (lambda a,b: a+b ),
@@ -54,8 +58,11 @@ class exprParser:
         expr << (multExpr + ZeroOrMore( Word("+-") + multExpr)).setParseAction( lambda s,l,t: opClean(t))
         equality = (expr + equal + expr).setParseAction( lambda s,l,t: Eq(t[0],t[1]) )
 
-        if equation: return equality.parseString(expression)[0]
-        else: return expr.parseString(expression)[0]
+        if equation: res = equality.parseString(expression)[0]
+        else: res = expr.parseString(expression)[0]
+
+        if returnVars: return varSet
+        else: return res
 
     @staticmethod
     def solve(equations, goal, subs=dict()):
@@ -63,6 +70,6 @@ class exprParser:
         g = goal.graph.name+"."+goal.name
         gs = symbols(g)
         res = solve(eq,dict=True)
-        gres = [r[gs] for r in res]
-        if len(gres) == 1: return Eq(gres[0],gs)
-        return Eq(gres[-1],gs)
+        lres = [Eq(x,y) for x,y in res[-1].items()]
+        fres = solve(lres,gs)
+        return fres[gs]

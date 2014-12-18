@@ -11,7 +11,10 @@ def typeGraph(t, code):
     for p in definition['properties']:
         if 'expression' in p:
             expr = p['binding'] + "=" + p['expression']
-            g.addEdge( {p['binding']}.union({x for x in g.nodes if x in p['expression'] }),expr )
+            edge = exprParser.parse(p['expression'],returnVars=True)
+            if not edge.issubset(g.nodes): Error(str(edge.difference(g.nodes)) + " are not defined in Type " + t)
+            edge.add(p['binding'])
+            g.addEdge(edge ,expr )
     return g
 
 def getVarGraph(variables,code,typeGraphs):
@@ -20,20 +23,21 @@ def getVarGraph(variables,code,typeGraphs):
     g.nodes = set(varGraphs.values())
     for v in variables:
         for prop,expr in code['vars'][v]['expressions'].items():
-            e = set()
-            for x in variables:
-                if (x+'.') in expr:
-                    e.add(varGraphs[x])
-            e.add(varGraphs[v])
+            parse = exprParser.parse(expr,returnVars=True)
+            edgeSplit = {e.split(".")[0] for e in parse}
+            edgeParts = edgeSplit.intersection(variables)
+            edge = {varGraphs[x] for x in edgeParts}
+            edge.add(varGraphs[v])
             if prop not in varGraphs[v].graph.nodes: Error("Variable " + v + " does not have property " + prop)
             fullExpr = v + "." + prop + "=" + expr
-            g.addEdge(e,fullExpr)
+            g.addEdge(edge,fullExpr)
     return g
 
-def fileParse(f, varGraph):
+def fileParse(f, varGraph, comp):
     if f['input']:
         for e in f['expressions']:    
-            pass
+            ref = comp.refDispenser()
+            fullExpr = ref + "=" + e
     if f['output']:
         for e in f['expressions']:    
             comp.fileOutput(f['filename'],N(exprParser.parse(e, main=varGraph)))
@@ -47,7 +51,7 @@ with open('code.json') as f:
     varGraph= getVarGraph(variables,code,typeGraphs)
     if 'files' in code:
         for f in code['files']:
-            fileParse(f,varGraph)
+            fileParse(f,varGraph, comp)
     if 'output' in code:
         for o in code['output']:
             comp.output(N(exprParser.parse(o, main=varGraph)))
