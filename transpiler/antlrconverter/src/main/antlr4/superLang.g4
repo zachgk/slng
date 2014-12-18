@@ -34,6 +34,7 @@ statement
     : typeDeclaration
     | varDeclaration
     | output
+    | fileDeclaration
     | NL
     ;
 
@@ -43,8 +44,11 @@ typeDeclaration
 varDeclaration
     : (LET SPACE)? LowerName EQUALS construction NL;
 
+fileDeclaration
+    : FILE SPACE (UpperName SPACE)+ filename INDENT (expression NL)* DEDENT;
+
 output
-    : OUTPUT SPACE expression NL;
+    : OUTPUT INDENT (expression NL)* DEDENT;
     
 bindingDeclaration
     : LowerName COLON (expression | dataType)  NL;
@@ -59,7 +63,7 @@ params
     : OPEN_PAREN (assignmentDeclaration (COMMA assignmentDeclaration)* )? CLOSE_PAREN;
 
 expression
-    : (INT | PLUS | TIMES | MINUS | DIVIDE | POWER | LowerName | UpperName | prop)+;
+    : (prop | INT | PLUS | TIMES | MINUS | DIVIDE | POWER | LowerName | UpperName )+;
 
 dataType
     : NUMBER | VECTOR;
@@ -67,11 +71,18 @@ dataType
 prop
     : LowerName DOT LowerName;
 
+filename
+    : word (DOT word)+;
+
+word
+    : UpperName | LowerName;
+
 LET: 'Let';
 TYPE: 'Type';
 NUMBER: 'Number';
 VECTOR: 'Vector';
 OUTPUT: 'Output';
+FILE: 'File';
 
 TIMES: '*';
 PLUS: '+';
@@ -89,14 +100,16 @@ COMMA: ' '* ',' ' '*;
 SPACE: ' ';
 
 UpperName
-    : UPPER_CHAR CHAR+;
+    : UPPER_CHAR CHAR*;
 
 LowerName
-    :CHAR+;
+    : LOWER_CHAR CHAR*;
 
 INT
     : DIGIT+;
 
+
 fragment UPPER_CHAR: [A-Z];
+fragment LOWER_CHAR: [a-z];
 fragment CHAR: [a-zA-Z];
 fragment DIGIT: [0-9];

@@ -2,10 +2,17 @@
 Type Circle
     radius: Number
     diameter: 2*radius
-    area: pi*radius^2
+    area: Pi*radius*radius
 Type Square
     length: Number
+    area: length*length
 
-Let c = Circle(area=5)
+File LineASCII Input input.in
+    c.radius
+
+Let c = Circle()
 s = Square(area=c.area)
-Output s.length
+
+Output
+    s.length
+

@@ -7,6 +7,11 @@ Type Square
     length: Number
     area: length*length
 
-Let c = Circle(radius=5)
+File LineASCII Input input.in
+    c.radius
+
+Let c = Circle()
 s = Square(area=c.area)
-Output s.length
+
+Output
+    s.length

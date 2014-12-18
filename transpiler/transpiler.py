@@ -28,6 +28,14 @@ def getVarGraph(variables,code,typeGraphs):
             g.addEdge(e,fullExpr)
     return g
 
+def fileParse(f, varGraph):
+    if f['input']:
+        for e in f['expressions']:    
+            pass
+    if f['output']:
+        for e in f['expressions']:    
+            comp.fileOutput(f['filename'],N(exprParser.parse(e, main=varGraph)))
+
 with open('code.json') as f:
     comp = Composer()
     code = json.loads(f.readline())
@@ -35,6 +43,10 @@ with open('code.json') as f:
     types = code['types'].keys()
     typeGraphs = {t:typeGraph(t,code) for t in types}
     varGraph= getVarGraph(variables,code,typeGraphs)
-    for o in code['output']:
-        comp.output(N(exprParser.parse(o, main=varGraph)))
+    if 'files' in code:
+        for f in code['files']:
+            fileParse(f,varGraph)
+    if 'output' in code:
+        for o in code['output']:
+            comp.output(N(exprParser.parse(o, main=varGraph)))
     comp.composeFile("code.cpp")

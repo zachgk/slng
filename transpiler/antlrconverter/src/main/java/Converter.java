@@ -19,15 +19,9 @@ public class Converter {
         final JSONObject types = new JSONObject();
         final JSONObject vars = new JSONObject();
         final JSONArray output = new JSONArray();
+        final JSONArray files = new JSONArray();
 
         p.addParseListener(new superLangBaseListener() {
-
-            @Override
-            public void exitProgram(superLangParser.ProgramContext ctx) {
-                List<superLangParser.StatementContext> statements = ctx.statement();
-                for (superLangParser.StatementContext statement : statements) {
-                }
-            }
 
             @Override
             public void exitTypeDeclaration(superLangParser.TypeDeclarationContext ctx) {
@@ -64,14 +58,42 @@ public class Converter {
             }
 
             @Override
+            public void exitFileDeclaration(superLangParser.FileDeclarationContext ctx) {
+                JSONObject file = new JSONObject();
+                JSONArray expressions = new JSONArray();
+                file.put("filename",ctx.filename().getText());
+                file.put("type",ctx.UpperName(0).getText());
+                file.put("input",true);
+                file.put("output",true);
+                for(int i=1; i<ctx.UpperName().size(); i++){
+                    String t = ctx.UpperName(i).getText();
+                    switch(t) {
+                        case "Input":
+                            file.put("output",false);
+                            break;
+                        case "Output":
+                            file.put("input",false);
+                            break;
+                        default:
+                            file.put(t,true);
+                    }
+                }
+                file.put("expressions",expressions);
+                files.add(file);
+            }
+
+            @Override
             public void exitOutput(superLangParser.OutputContext ctx) {
-                output.add(ctx.expression().getText());
+                for(superLangParser.ExpressionContext o:ctx.expression()) {
+                    output.add(o.getText());
+                }
             }
         });
         p.program();
         if(types.size() > 0) prog.put("types", types);
         if(vars.size() > 0) prog.put("vars", vars);
         if(output.size() > 0) prog.put("output",output);
+        if(files.size() > 0) prog.put("files",files);
         return prog;
     }
 }
