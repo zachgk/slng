@@ -1,5 +1,6 @@
 from collections import deque
 from expr import *
+from common import *
 import re
 
 class Hypergraph:
@@ -68,7 +69,9 @@ class Hypergraph:
     def treeCompute(self, start, graph=None):
         if graph is None: graph = self
         t = self.tree(start, complete=True, graph=graph)
-        return self.treeComputeRec(Node(start,graph),t)
+        res = self.treeComputeRec(Node(start,graph),t)
+        if res is None: Error("Could not compute " + start)
+        return res
 
     def treeComputeRec(self, root, tree):
         ne = root.graph.neighborEdges(root.name,complete=False)

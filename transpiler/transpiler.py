@@ -2,6 +2,7 @@ import json
 from hypergraph import *
 from expr import exprParser
 from compose import Composer
+from common import *
 
 def typeGraph(t, code):
     g = Hypergraph()
@@ -24,6 +25,7 @@ def getVarGraph(variables,code,typeGraphs):
                 if (x+'.') in expr:
                     e.add(varGraphs[x])
             e.add(varGraphs[v])
+            if prop not in varGraphs[v].graph.nodes: Error("Variable " + v + " does not have property " + prop)
             fullExpr = v + "." + prop + "=" + expr
             g.addEdge(e,fullExpr)
     return g
