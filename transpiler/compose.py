@@ -30,6 +30,7 @@ class Composer:
         return self.files[filename]
 
     def output(self, source, s):
+        print(s)
         self.outputs.append(source + " << " + str(s) + " << endl")
 
     def standardOutput(self, s):

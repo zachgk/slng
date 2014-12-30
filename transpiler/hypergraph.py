@@ -9,9 +9,6 @@ class Hypergraph:
         self.nodes = set()
         self.edges = set()
 
-    def __str__(self): 
-        return str((self.nodes,self.edges))
-
     def getNode(self, name):
         for n in self.nodes:
             if type(n) is Subgraph and n.name == name: return n
@@ -34,9 +31,7 @@ class Hypergraph:
 
     def neighbors(self, node, complete=False):
         edges = self.neighborEdges(node,complete=complete)
-        neighbors = set()
-        for e in edges:
-            neighbors = neighbors.union(e[0])
+        neighbors = {x for e in edges for x in e[0]}
         neighbors.discard(node)
         return neighbors
 
@@ -48,9 +43,21 @@ class Hypergraph:
         nodes[graph].discard(start)
         while(len(queue)>0):
             node, path, g = queue.popleft()
-            neighbors = g.neighbors(node,complete=complete)
-            neighbors = neighbors.intersection(nodes[g])
-            nodes[g] = nodes[g].difference(neighbors)
+            potNeighbors = g.neighbors(node,complete=complete)
+            neighborEdges = g.neighborEdges(node,complete=complete)
+            neighbors = set()
+            for n in potNeighbors:
+                if type(n) is Node:
+                    if n.graph not in nodes:
+                        if type(n.graph) is Hypergraph: nodes[n.graph] = n.graph.nodes
+                        else: nodes[n.graph] = n.graph.graph.nodes
+                    if n.name in nodes[n.graph]:
+                        nodes[n.graph].discard(n)
+                        neighbors.add(n)
+                else:
+                    if n in nodes[g]:
+                        nodes[g].discard(n)
+                        neighbors.add(n)
             nodes[g].discard(node)
             lt = t
             for p in path: lt = lt[p]
@@ -61,7 +68,9 @@ class Hypergraph:
             for n in neighbors:
                 if type(n) is Node:
                     queue.append( (n.name,newPath,n.graph) )
-                    if n.graph not in nodes: nodes[n.graph] = n.graph.graph.nodes
+                    if n.graph not in nodes:
+                        if type(n.graph) is Hypergraph: nodes[n.graph] = n.graph.nodes
+                        else: nodes[n.graph] = n.graph.graph.nodes
                 else:
                     queue.append( (n,newPath,g) )
         return t
@@ -76,6 +85,7 @@ class Hypergraph:
     def treeComputeRec(self, root, tree):
         ne = root.graph.neighborEdges(root.name,complete=False)
         rootCycles = {e for e in ne if e[0]==frozenset({root.name}) }
+        if root.name[0] == "{" and root.name[-1]=="}": return root.name
         if len(rootCycles) == 1:
             return list(rootCycles)[0][1]
         else:
@@ -84,10 +94,9 @@ class Hypergraph:
                 if rec is not None:
                     edge = {e for e in ne if r.name in e[0] and root.name in e[0]}
                     exprs = {rec,list(edge)[0][1]}
-                    subs = {
-                        r.name: r.graph.name + "." + r.name,
-                        root.name: root.graph.name + "." + root.name
-                    }
+                    subs = dict()
+                    if type(r.graph) is Subgraph: subs[r.name] = r.graph.name + "." + r.name
+                    if type(root.graph) is Subgraph: subs[root.name] = root.graph.name + "." + root.name
                     return exprParser.solve(exprs,root,subs=subs)
         return None
 
@@ -156,3 +165,11 @@ class Node:
     def __init__(self, name, graph):
         self.name = name
         self.graph = graph
+
+    def __eq__(self, other):
+        if type(other) is Node: return self.name==other.name and self.graph == other.graph
+        else: return self.name == other
+
+    def __hash__(self):
+        g = str(self.graph)
+        return hash(self.name + g )

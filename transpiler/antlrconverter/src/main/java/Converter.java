@@ -78,6 +78,9 @@ public class Converter {
                             file.put(t,true);
                     }
                 }
+                for(superLangParser.ExpressionContext e:ctx.expression()) {
+                    expressions.add(e.getText());
+                }
                 file.put("expressions",expressions);
                 files.add(file);
             }

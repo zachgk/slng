@@ -1,6 +1,8 @@
 from pyparsing import Word, alphas, nums, Forward, ZeroOrMore, Or, Literal, Group, Regex
 from sympy import *
 from common import *
+import hypergraph
+import logging
 
 
 class exprParser:
@@ -24,11 +26,12 @@ class exprParser:
             if s in subs: s = subs[s]
             return symbols(s)
 
-        integer = Word(nums).setParseAction( lambda s,l,t: [ int(t[0]) ] )
-        decimal = Regex("[0-9]+\.[0-9]").setParseAction( lambda s,l,t: [float(t[0])])
-        special = Regex("[A-Z][a-zA-Z]*").setParseAction( lambda s,l,t: [spec[t[0]]])
-        var = Regex("[a-z][a-zA-Z]*").setParseAction( lambda s,l,t: [getSymbol(t[0])])
-        prop = Regex("[a-z][a-zA-Z]*\.[a-z][a-zA-Z]*").setParseAction( lambda s,l,t: [getSymbol(t[0])])
+        integer = Word(nums).setParseAction( lambda t: [ int(t[0]) ] )
+        decimal = Regex("[0-9]+\.[0-9]").setParseAction( lambda t: [float(t[0])])
+        special = Regex("[A-Z][a-zA-Z]*").setParseAction( lambda t: [spec[t[0]]])
+        var = Regex("[a-z][a-zA-Z]*").setParseAction( lambda t: [getSymbol(t[0])])
+        prop = Regex("[a-z][a-zA-Z]*\.[a-z][a-zA-Z]*").setParseAction( lambda t: [getSymbol(t[0])])
+        ref = Regex("\{[0-9]+\}").setParseAction( lambda t: [getSymbol(t[0])])
 
         opn = {
             "+": (lambda a,b: a+b ),
@@ -44,16 +47,20 @@ class exprParser:
 
         if main is not None:
             def treeCompute(p):
-                split = p.split(".")
-                g = main.getNode(split[0])
-                comp = g.treeCompute(g.graph.getNode(split[1]))
-                res = solve(comp,symbols(p))
-                return res[0]
-            prop = prop.setParseAction( lambda s,l,t: [treeCompute(t[0])])
+                try:
+                    split = p.split(".")
+                    g = main.getNode(split[0])
+                    comp = g.treeCompute(g.graph.getNode(split[1]))
+                    res = solve(comp,symbols(p))
+                    return res[0]
+                except Exception as e:
+                    logging.exception(e)
+                    print("Error with tree Compute: ")
+            prop = prop.setParseAction( lambda t: [treeCompute(t[0])])
 
         expr = Forward()
         paren = (lparen + expr + rparen).setParseAction( lambda s,l,t: t)
-        atom = paren | decimal | integer | prop | special | var
+        atom = paren | decimal | integer | ref | prop | special | var
         multExpr = (atom + ZeroOrMore( Word("*/") + atom)).setParseAction( lambda s,l,t: opClean(t))
         expr << (multExpr + ZeroOrMore( Word("+-") + multExpr)).setParseAction( lambda s,l,t: opClean(t))
         equality = (expr + equal + expr).setParseAction( lambda s,l,t: Eq(t[0],t[1]) )
@@ -67,7 +74,8 @@ class exprParser:
     @staticmethod
     def solve(equations, goal, subs=dict()):
         eq = [exprParser.parse(e, equation=True, subs=subs) for e in equations]
-        g = goal.graph.name+"."+goal.name
+        if type(goal.graph) is hypergraph.Subgraph: g = goal.graph.name+"."+goal.name
+        else: g = goal.name
         gs = symbols(g)
         res = solve(eq,dict=True)
         lres = [Eq(x,y) for x,y in res[-1].items()]

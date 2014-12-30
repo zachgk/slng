@@ -17,17 +17,22 @@ def typeGraph(t, code):
             g.addEdge(edge ,expr )
     return g
 
+def getSubEdge(expr, varGraph):
+    parse = exprParser.parse(expr,returnVars=True)
+    edgeSplit = {e.split(".")[0] for e in parse}
+    edgeParts = edgeSplit.intersection(variables)
+    edge = {varGraph.getNode(x) for x in edgeParts}
+    return edge
+    
+
 def getVarGraph(variables,code,typeGraphs):
     g = Hypergraph()
     varGraphs = {v:Subgraph(typeGraphs[code['vars'][v]['type']],g).setName(v) for v in variables}
     g.nodes = set(varGraphs.values())
     for v in variables:
         for prop,expr in code['vars'][v]['expressions'].items():
-            parse = exprParser.parse(expr,returnVars=True)
-            edgeSplit = {e.split(".")[0] for e in parse}
-            edgeParts = edgeSplit.intersection(variables)
-            edge = {varGraphs[x] for x in edgeParts}
-            edge.add(varGraphs[v])
+            edge = getSubEdge(expr,g)
+            edge.add(g.getNode(v))
             if prop not in varGraphs[v].graph.nodes: Error("Variable " + v + " does not have property " + prop)
             fullExpr = v + "." + prop + "=" + expr
             g.addEdge(edge,fullExpr)
@@ -38,9 +43,13 @@ def fileParse(f, varGraph, comp):
         for e in f['expressions']:    
             ref = comp.refDispenser()
             fullExpr = ref + "=" + e
+            edge = getSubEdge(e,varGraph)
+            edge.add(ref)
+            varGraph.nodes.add(ref)
+            varGraph.addEdge(edge,fullExpr)
     if f['output']:
         for e in f['expressions']:    
-            comp.fileOutput(f['filename'],N(exprParser.parse(e, main=varGraph)))
+            comp.fileOutput(f['filename'],exprParser.parse(e, main=varGraph))
 
 with open('code.json') as f:
     comp = Composer()
@@ -54,5 +63,5 @@ with open('code.json') as f:
             fileParse(f,varGraph, comp)
     if 'output' in code:
         for o in code['output']:
-            comp.output(N(exprParser.parse(o, main=varGraph)))
+            comp.standardOutput(exprParser.parse(o, main=varGraph))
     comp.composeFile("code.cpp")
