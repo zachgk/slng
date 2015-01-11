@@ -55,7 +55,7 @@ class exprParser:
                     return res[0]
                 except Exception as e:
                     logging.exception(e)
-                    print("Error with tree Compute: ")
+                    Error("Error with tree Compute: ")
             prop = prop.setParseAction( lambda t: [treeCompute(t[0])])
 
         expr = Forward()

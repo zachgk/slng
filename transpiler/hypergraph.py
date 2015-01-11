@@ -25,7 +25,14 @@ class Hypergraph:
         return len(links) == len(nodes)-1
         
     def neighborEdges(self, node, complete=False):
-        neighbors = {e for e in self.edges if node in e[0]}
+        # neighbors = {e for e in self.edges if node in e[0]}
+        neighbors = set()
+        for e in self.edges:
+            t = False
+            for x in e[0]:
+                if x == node: t = True
+            if t:
+                neighbors.add(e)
         if complete: return {e for e in neighbors if self.completelyConnected(e[0])}
         else: return neighbors
 
@@ -119,10 +126,8 @@ class Subgraph:
             newNodes = {s[2:] for s in rexpr.findall(e[1]) }
             for n in e[0]:
                 if n == self: continue
-                elif type(n) is Subgraph:
-                    rexpr = re.compile(n.name + "\.[a-zA-Z]+")
-                    for x in rexpr.findall(e[1]):
-                        newNodes.add(Node(x[2:],n))
+                elif type(n) is Node:
+                    newNodes.add(n)
                 else:
                     newNodes.add(Node(n,self.parent))
             self.externalEdges.add((frozenset(newNodes),e[1]))
@@ -163,12 +168,17 @@ class Subgraph:
 
 class Node:
     def __init__(self, name, graph):
+        if type(name) is not str: raise Exception()
         self.name = name
         self.graph = graph
 
     def __eq__(self, other):
         if type(other) is Node: return self.name==other.name and self.graph == other.graph
+        if type(other) is Subgraph: return self.graph == other
         else: return self.name == other
+
+    def __ne__(self, other):
+        return not self.__eq__(other)
 
     def __hash__(self):
         g = str(self.graph)

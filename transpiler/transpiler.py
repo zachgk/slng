@@ -19,9 +19,9 @@ def typeGraph(t, code):
 
 def getSubEdge(expr, varGraph):
     parse = exprParser.parse(expr,returnVars=True)
-    edgeSplit = {e.split(".")[0] for e in parse}
-    edgeParts = edgeSplit.intersection(variables)
-    edge = {varGraph.getNode(x) for x in edgeParts}
+    edgeSplit = {tuple(e.split(".")) for e in parse}
+    edgeParts = {e for e in edgeSplit if e[0] in variables}
+    edge = {Node(x[1],varGraph.getNode(x[0])) for x in edgeSplit}
     return edge
     
 
@@ -32,7 +32,7 @@ def getVarGraph(variables,code,typeGraphs):
     for v in variables:
         for prop,expr in code['vars'][v]['expressions'].items():
             edge = getSubEdge(expr,g)
-            edge.add(g.getNode(v))
+            edge.add(Node(v,g))
             if prop not in varGraphs[v].graph.nodes: Error("Variable " + v + " does not have property " + prop)
             fullExpr = v + "." + prop + "=" + expr
             g.addEdge(edge,fullExpr)
@@ -44,8 +44,9 @@ def fileParse(f, varGraph, comp):
             ref = comp.refDispenser()
             fullExpr = ref + "=" + e
             edge = getSubEdge(e,varGraph)
-            edge.add(ref)
-            varGraph.nodes.add(ref)
+            n = Node(ref,varGraph)
+            edge.add(n)
+            varGraph.nodes.add(n)
             varGraph.addEdge(edge,fullExpr)
     if f['output']:
         for e in f['expressions']:    
