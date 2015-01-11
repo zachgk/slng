@@ -1,185 +1,100 @@
-from collections import deque
+from collections import deque, namedtuple
 from expr import *
 from common import *
 import re
 
-class Hypergraph:
+def absEdge(edge, path):
+    nodes = set()
+    for n in edge.nodes:
+        if type(n) is NodeRef:
+            nodes.add(n)
+        elif type(n) is Node:
+            nodes.add(NodeRef(n,path))
+        else:
+            Error("unknown type of node for neighbors: " + str(type(n)))
+    return edge._replace(nodes=frozenset(nodes))
 
+def neighborEdges(nodeRef):
+    parentage = set()
+    path = tuple(nodeRef.parents)
+    for i in range(len(path)):
+        last = path[-1]
+        path = path[:-1]
+        parentage = parentage.union({absEdge(e,path) for e in last.graph.edges if nodeRef in e.nodes})
+    ne = {absEdge(e,nodeRef.parents) for e in nodeRef.node.graph.edges if nodeRef.node in e.nodes}
+    return parentage.union(ne)
+
+def neighbors(nodeRef):
+    edges = neighborEdges(nodeRef)
+    nodes = {n for e in edges for n in e.nodes}
+    nodes.discard(nodeRef)
+    return nodes
+    
+def tree(nodeRef):
+    visited = {nodeRef}
+    queue = deque([(nodeRef,list())])
+    t = {nodeRef: dict()}
+    while len(queue) > 0:
+        nr, path = queue.popleft()
+        nbrs = neighbors(nr)
+        nbrs = nbrs.difference(visited)
+        visited = visited.union(nbrs)
+        lt = t
+        for p in path: lt = lt[p]
+        lt[nr] = dict()
+        newPath = path.copy()
+        newPath.append(nr)
+        for n in nbrs:
+            queue.append((n,newPath))
+    return t
+
+def getSubs(nodeRef):
+    s = nodeRef.node.name
+    subs = [s]
+    path = tuple(nodeRef.parents)
+    for i in range(len(path)):
+        last = path[-1]
+        path = path[:-1]
+        s = last.nodeGraph.name + '.' + s
+        subs.append(s)
+    full = subs[-1]
+    return {x:full for x in subs[:-1] }
+
+def treeCompute(nodeRef):
+    t = tree(nodeRef)
+    res = treeComputeRec(nodeRef,t)
+    if res is None: Error("Could not compute " + str(nodeRef))
+    return res
+
+def treeComputeRec(root, tree):
+    ne = neighborEdges(root)
+    rootCycles = {e for e in ne if len(e.nodes)==1}
+    if len(rootCycles) > 0:
+        return list(rootCycles)[0].equation
+    else:
+        for r,t in tree.items():
+            rec = treeComputeRec(r,t)
+            if rec is not None:
+                edge = [e for e in ne if r in e.nodes and root in e.nodes][0]
+                exprs = {rec,edge.equation}
+                rootSubs= list(getSubs(root).items())
+                rSubs = list(getSubs(r).items())
+                subs = dict(rootSubs + rSubs)
+                if len(rootSubs) > 0:
+                    goal = rootSubs[0][1]
+                else:
+                    goal = root.node.name
+                return exprParser.solve(exprs,goal,subs=subs)
+    return None
+
+
+class Hypergraph:
     def __init__(self):
         self.nodes = set()
         self.edges = set()
 
-    def getNode(self, name):
-        for n in self.nodes:
-            if type(n) is Subgraph and n.name == name: return n
-            elif n == name: return n
-        return None
-            
-
-    def addEdge(self,nodes,data):
-        self.edges.add((frozenset(nodes),data))
-
-    def completelyConnected(self,nodes, edges=-1):
-        if edges == -1: edges = self.edges
-        links = {e for e in edges if frozenset(nodes)==e[0] }
-        return len(links) == len(nodes)-1
-        
-    def neighborEdges(self, node, complete=False):
-        # neighbors = {e for e in self.edges if node in e[0]}
-        neighbors = set()
-        for e in self.edges:
-            t = False
-            for x in e[0]:
-                if x == node: t = True
-            if t:
-                neighbors.add(e)
-        if complete: return {e for e in neighbors if self.completelyConnected(e[0])}
-        else: return neighbors
-
-    def neighbors(self, node, complete=False):
-        edges = self.neighborEdges(node,complete=complete)
-        neighbors = {x for e in edges for x in e[0]}
-        neighbors.discard(node)
-        return neighbors
-
-    def tree(self, start, complete = False, graph=None):
-        if graph is None: graph = self
-        t = {Node(start,graph): dict() }
-        nodes = {graph: self.nodes}
-        queue = deque([(start,[],graph)])
-        nodes[graph].discard(start)
-        while(len(queue)>0):
-            node, path, g = queue.popleft()
-            potNeighbors = g.neighbors(node,complete=complete)
-            neighborEdges = g.neighborEdges(node,complete=complete)
-            neighbors = set()
-            for n in potNeighbors:
-                if type(n) is Node:
-                    if n.graph not in nodes:
-                        if type(n.graph) is Hypergraph: nodes[n.graph] = n.graph.nodes
-                        else: nodes[n.graph] = n.graph.graph.nodes
-                    if n.name in nodes[n.graph]:
-                        nodes[n.graph].discard(n)
-                        neighbors.add(n)
-                else:
-                    if n in nodes[g]:
-                        nodes[g].discard(n)
-                        neighbors.add(n)
-            nodes[g].discard(node)
-            lt = t
-            for p in path: lt = lt[p]
-            absNode = Node(node,g)
-            lt[absNode] = dict()
-            newPath = path.copy()
-            newPath.append(absNode)
-            for n in neighbors:
-                if type(n) is Node:
-                    queue.append( (n.name,newPath,n.graph) )
-                    if n.graph not in nodes:
-                        if type(n.graph) is Hypergraph: nodes[n.graph] = n.graph.nodes
-                        else: nodes[n.graph] = n.graph.graph.nodes
-                else:
-                    queue.append( (n,newPath,g) )
-        return t
-
-    def treeCompute(self, start, graph=None):
-        if graph is None: graph = self
-        t = self.tree(start, complete=True, graph=graph)
-        res = self.treeComputeRec(Node(start,graph),t)
-        if res is None: Error("Could not compute " + start)
-        return res
-
-    def treeComputeRec(self, root, tree):
-        ne = root.graph.neighborEdges(root.name,complete=False)
-        rootCycles = {e for e in ne if e[0]==frozenset({root.name}) }
-        if root.name[0] == "{" and root.name[-1]=="}": return root.name
-        if len(rootCycles) == 1:
-            return list(rootCycles)[0][1]
-        else:
-            for r,t in tree.items():
-                rec = self.treeComputeRec(r,t)
-                if rec is not None:
-                    edge = {e for e in ne if r.name in e[0] and root.name in e[0]}
-                    exprs = {rec,list(edge)[0][1]}
-                    subs = dict()
-                    if type(r.graph) is Subgraph: subs[r.name] = r.graph.name + "." + r.name
-                    if type(root.graph) is Subgraph: subs[root.name] = root.graph.name + "." + root.name
-                    return exprParser.solve(exprs,root,subs=subs)
-        return None
-
-
-class Subgraph:
-    def __init__(self,graph,parent):
-        self.graph = graph
-        self.parent = parent
-
-    def setName(self,name):
-        self.name = name
-        return self
-
-    def addExternal(self,complete=False):
-        edges = self.parent.neighborEdges(self,complete=complete)
-        self.externalNodes = set()
-        self.externalEdges = set()
-        for e in edges:
-            rexpr = re.compile(self.name + "\.[a-zA-Z]+")
-            newNodes = {s[2:] for s in rexpr.findall(e[1]) }
-            for n in e[0]:
-                if n == self: continue
-                elif type(n) is Node:
-                    newNodes.add(n)
-                else:
-                    newNodes.add(Node(n,self.parent))
-            self.externalEdges.add((frozenset(newNodes),e[1]))
-            self.externalNodes = self.externalNodes.union(newNodes)
-        self.graph.edges = self.graph.edges.union(self.externalEdges)
-        self.graph.nodes = self.graph.nodes.union(self.externalNodes)
-
-    def removeExternal(self):
-        self.graph.edges = self.graph.edges.difference(self.externalEdges)
-        self.graph.nodes = self.graph.nodes.difference(self.externalNodes)
-        
-
-    def tree(self, start, complete=False):
-        self.addExternal(complete=complete)
-        t = self.graph.tree(start, complete=complete)
-        self.removeExternal()
-        return t
-
-    def treeCompute(self, start):
-        self.addExternal(complete=True)
-        t = self.graph.treeCompute(start, graph=self)
-        self.removeExternal()
-        return t
-
-    def neighbors(self, node, complete=False):
-        self.addExternal(complete=complete)
-        n = self.graph.neighbors(node,complete=complete)
-        self.removeExternal()
-        return n
-
-    def neighborEdges(self, node, complete=False):
-        self.addExternal(complete=complete)
-        n = self.graph.neighborEdges(node,complete=complete)
-        self.removeExternal()
-        return n
-        
-
-
-class Node:
-    def __init__(self, name, graph):
-        if type(name) is not str: raise Exception()
-        self.name = name
-        self.graph = graph
-
-    def __eq__(self, other):
-        if type(other) is Node: return self.name==other.name and self.graph == other.graph
-        if type(other) is Subgraph: return self.graph == other
-        else: return self.name == other
-
-    def __ne__(self, other):
-        return not self.__eq__(other)
-
-    def __hash__(self):
-        g = str(self.graph)
-        return hash(self.name + g )
+Node = namedtuple('Node', 'graph name')
+Edge = namedtuple('Edge', 'nodes equation')
+NodeRef = namedtuple('NodeRef', 'node parents')
+NodeGraph = namedtuple('NodeGraph','name graph parent')
+RefParent = namedtuple('RefParent','graph nodeGraph')

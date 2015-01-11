@@ -77,8 +77,14 @@ def treeComputeRec(root, tree):
             if rec is not None:
                 edge = [e for e in ne if r in e.nodes and root in e.nodes][0]
                 exprs = {rec,edge.equation}
-                subs = dict( list(getSubs(r).items()) + list(getSubs(root).items()) )
-                return exprParser.solve(exprs,root,subs=subs)
+                rootSubs= list(getSubs(root).items())
+                rSubs = list(getSubs(r).items())
+                subs = dict(rootSubs + rSubs)
+                if len(rootSubs) > 0:
+                    goal = rootSubs[0][1]
+                else:
+                    goal = root.node.name
+                return exprParser.solve(exprs,goal,subs=subs)
     return None
 
 
@@ -130,11 +136,14 @@ e7 = Edge(nodes=frozenset({a,NodeRef(node=x,parents=(RefParent(h,xyz),))}),equat
 h.nodes.add(xyz)
 h.edges.add(e7)
 
-selfEdge = Edge(nodes=frozenset({z}),equation='z=5')
-i.edges.add(selfEdge)
+# selfEdge = Edge(nodes=frozenset({z}),equation='z=5')
+# i.edges.add(selfEdge)
+
+selfEdge = Edge(nodes=frozenset({d}),equation='d=5')
+h.edges.add(selfEdge)
 
 aRef = NodeRef(node=a,parents=tuple() )
-print(treeCompute(aRef))
+# print(treeCompute(aRef))
 
 xRef = NodeRef(node=x,parents=(RefParent(h,xyz),))
-# print(neighborEdges(xRef))
+print(treeCompute(xRef))

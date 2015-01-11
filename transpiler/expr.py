@@ -72,12 +72,11 @@ class exprParser:
         else: return res
 
     @staticmethod
-    def solve(equations, goal, subs=dict()):
+    def solve(equations, goal, subs=dict(), returnEquation=True):
         eq = [exprParser.parse(e, equation=True, subs=subs) for e in equations]
-        if type(goal.graph) is hypergraph.Subgraph: g = goal.graph.name+"."+goal.name
-        else: g = goal.name
-        gs = symbols(g)
+        gs = symbols(goal)
         res = solve(eq,dict=True)
         lres = [Eq(x,y) for x,y in res[-1].items()]
         fres = solve(lres,gs)
-        return fres[gs]
+        if returnEquation: return Eq(gs, fres[gs])
+        else: return fres[gs]
