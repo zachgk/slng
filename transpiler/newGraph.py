@@ -3,17 +3,6 @@ from expr import *
 from common import *
 import re
 
-
-def neighborEdges(nodeRef):
-    parentage = set()
-    path = tuple()
-    for refParent in nodeRef.parents:
-        path = path + (refParent,)
-        nr = NodeRef(nodeRef.node,path)
-        parentage = parentage.union({e for e in refParent.graph.edges if nr in e.nodes})
-    ne = {e for e in nodeRef.node.graph.edges if nodeRef.node in e.nodes}
-    return parentage.union(ne)
-
 def absEdge(edge, path):
     nodes = set()
     for n in edge.nodes:
@@ -25,7 +14,7 @@ def absEdge(edge, path):
             Error("unknown type of node for neighbors: " + str(type(n)))
     return edge._replace(nodes=frozenset(nodes))
 
-def absNeighborEdges(nodeRef):
+def neighborEdges(nodeRef):
     parentage = set()
     path = tuple(nodeRef.parents)
     for i in range(len(path)):
@@ -37,21 +26,13 @@ def absNeighborEdges(nodeRef):
 
 def neighbors(nodeRef):
     edges = neighborEdges(nodeRef)
-    nodes = set()
-    for e in edges:
-        for n in e.nodes:
-            if type(n) is NodeRef:
-                nodes.add(n)
-            elif type(n) is Node:
-                nodes.add(NodeRef(n,nodeRef.parents))
-            else:
-                Error("unknown type of node for neighbors: " + str(type(n)))
+    nodes = {n for e in edges for n in e.nodes}
     nodes.discard(nodeRef)
     return nodes
     
 def tree(nodeRef):
     visited = {nodeRef}
-    queue = deque([(nodeRef,[])])
+    queue = deque([(nodeRef,list())])
     t = {nodeRef: dict()}
     while len(queue) > 0:
         nr, path = queue.popleft()
@@ -67,6 +48,18 @@ def tree(nodeRef):
             queue.append((n,newPath))
     return t
 
+def getSubs(nodeRef):
+    s = nodeRef.node.name
+    subs = [s]
+    path = tuple(nodeRef.parents)
+    for i in range(len(path)):
+        last = path[-1]
+        path = path[:-1]
+        s = last.nodeGraph.name + '.' + s
+        subs.append(s)
+    full = subs[-1]
+    return {x:full for x in subs[:-1] }
+
 def treeCompute(nodeRef):
     t = tree(nodeRef)
     res = treeComputeRec(nodeRef,t)
@@ -74,19 +67,17 @@ def treeCompute(nodeRef):
     return res
 
 def treeComputeRec(root, tree):
-    ne = neighborEdges(nodeRef)
+    ne = neighborEdges(root)
     rootCycles = {e for e in ne if len(e.nodes)==1}
     if len(rootCycles) > 0:
-        return list(rootCycles)[0]
+        return list(rootCycles)[0].equation
     else:
         for r,t in tree.items():
-           rec = treeComputeRec(r,t)
-           if rec is not None:
-                edge = {e for e in ne if r.name in e[0] and root.name in e[0]}
-                exprs = {rec,list(edge)[0][1]}
-                subs = dict()
-                if type(r.graph) is Subgraph: subs[r.name] = r.graph.name + "." + r.name
-                if type(root.graph) is Subgraph: subs[root.name] = root.graph.name + "." + root.name
+            rec = treeComputeRec(r,t)
+            if rec is not None:
+                edge = [e for e in ne if r in e.nodes and root in e.nodes][0]
+                exprs = {rec,edge.equation}
+                subs = dict( list(getSubs(r).items()) + list(getSubs(root).items()) )
                 return exprParser.solve(exprs,root,subs=subs)
     return None
 
@@ -99,7 +90,7 @@ class Hypergraph:
 Node = namedtuple('Node', 'graph name')
 Edge = namedtuple('Edge', 'nodes equation')
 NodeRef = namedtuple('NodeRef', 'node parents')
-NodeGraph = namedtuple('NodeGraph','graph parent')
+NodeGraph = namedtuple('NodeGraph','name graph parent')
 RefParent = namedtuple('RefParent','graph nodeGraph')
 
 h = Hypergraph()
@@ -134,7 +125,7 @@ n = Node(graph=j,name='n')
 e6 = Edge(nodes=frozenset({m,n}),equation='m=3*n')
 j.edges.add(e6)
 
-xyz = NodeGraph(graph=i,parent=h)
+xyz = NodeGraph(name='xyz',graph=i,parent=h)
 e7 = Edge(nodes=frozenset({a,NodeRef(node=x,parents=(RefParent(h,xyz),))}),equation='a=2*x')
 h.nodes.add(xyz)
 h.edges.add(e7)
@@ -143,7 +134,7 @@ selfEdge = Edge(nodes=frozenset({z}),equation='z=5')
 i.edges.add(selfEdge)
 
 aRef = NodeRef(node=a,parents=tuple() )
-# print(absNeighborEdges(aRef))
+print(treeCompute(aRef))
 
 xRef = NodeRef(node=x,parents=(RefParent(h,xyz),))
-print(absNeighborEdges(xRef))
+# print(neighborEdges(xRef))
