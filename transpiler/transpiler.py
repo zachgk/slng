@@ -44,7 +44,7 @@ def getVarGraph(variables,code,typeGraphs):
 def fileParse(f, varGraph, comp):
     if f['input']:
         for e in f['expressions']:    
-            ref = comp.refDispenser()
+            ref = comp.fileReadNumber(f['filename'])
             n = hypergraph.Node(name=ref,graph=varGraph)
             varGraph.nodes.add(n)
             fullExpr = ref + "=" + e

@@ -3,8 +3,6 @@ from expr import *
 from common import *
 import re
 
-refExpr = re.compile("\{[0-9]+\}")
-
 def absEdge(edge, path):
     nodes = set()
     for n in edge.nodes:

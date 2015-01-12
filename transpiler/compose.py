@@ -1,4 +1,6 @@
 import string
+from sympy import *
+from common import *
 
 class Composer:
 
@@ -9,6 +11,8 @@ class Composer:
         self.outputs = []
         self.includes = set()
         self.files = dict()
+        self.fileInputStreams = dict()
+        self.refVars = dict()
 
     def include(self, s):
         self.includes.add("#include " + s)
@@ -29,8 +33,44 @@ class Composer:
             self.files[filename] = (self.varDispenser(),io)
         return self.files[filename]
 
+    def fileReadNumber(self, filename):
+        self.include("<iostream>")
+        self.include("<fstream>")
+        f = self.getFile(filename, "ifstream")
+        if f[0] not in self.fileInputStreams:
+            self.fileInputStreams[f[0]] = list()
+        r = self.refDispenser()
+        self.fileInputStreams[f[0]].append(r)
+        v = self.varDispenser()
+        self.refVars[r] = v
+        return r
+        
+
+    def expression(self, expr):
+        if isinstance(expr,Mul):
+            return '*'.join([self.expression(e) for e in expr.as_ordered_factors()])
+        elif isinstance(expr,Pow):
+            e = expr.as_base_exp()
+            return 'pow('+self.expression(e[0])+','+self.expression(e[1])+')'
+        elif isinstance(expr,Integer):
+            return str(expr)
+        elif isinstance(expr,Symbol):
+            s = expr.name
+            if refExpr.match(s):
+                return self.refVars[s]
+            else:
+                Error('Invalid symbol in output expression: ' + s)
+        elif expr == pi:
+            self.include("<math.h>")
+            return 'M_PI'
+        elif expr == S.Half:
+            return '.5'
+        else:
+            Error("Unknown expression type: " + str(type(expr)))
+        return str(expr)
+
     def output(self, source, s):
-        self.outputs.append(source + " << " + str(s) + " << endl")
+        self.outputs.append(source + " << " + self.expression(s) + " << endl")
 
     def standardOutput(self, s):
         self.include("<iostream>")
@@ -47,7 +87,7 @@ class Composer:
         def forceLines(l):
             return "".join(s + "\n" for s in l)
         def fileDeclarations(files):
-            return "".join([line(f[1] + " " + f[0] + "('" + v + "')") for v,f in files.items()])
+            return "".join([line(f[1] + " " + f[0] + '("' + v + '")') for v,f in files.items()])
         def lines(l):
             return "".join([line(s) for s in l])
         def block(head,body):
@@ -56,7 +96,13 @@ class Composer:
         c = ""
         c+= forceLines(self.includes)
         c+= line("using namespace std")
-        main = fileDeclarations(self.files) + lines(self.outputs) + line("return 0")
+        main = fileDeclarations(self.files)
+        for fileVar,inputStream in self.fileInputStreams.items():
+            for item in inputStream:
+                main+= line("double " + self.refVars[item])
+                main+= line(fileVar + " >> " + self.refVars[item])
+        main += lines(self.outputs)
+        main += line("return 0")
         c+= block("int main()",main)
         return c
 
