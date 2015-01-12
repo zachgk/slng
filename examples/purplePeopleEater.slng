@@ -1,0 +1,41 @@
+It was a One Eyed One Horned Flying Purple People Eater
+Fred is a one eyed one horned flying monster that eats people, specifically bob who happens to be purple
+
+Set Abilities = {CanFly, CanRun, CanSwim}
+
+Type LivingBeing
+    eats: Set Object
+    ate: Subset eats
+    numberEyes: Number 2
+    numberHorns: Number 0
+    color: Color
+    abilities: Subset Abilities
+    genus: String
+    species: String
+
+Type Monster IsA LivingBeing
+    genus = "Monsterium"
+    species = "Monstrus"
+
+Type People IsA LivingBeing
+    genus = "Homo"
+    species = "Sapien"
+
+bob = Person(color=#ff00ff)
+fred = Monster(numberEyes=1,numberHorns=1,abilities+=CanFly, eats+=People)
+
+fred.ate+=bob
+
+# People In fred.eats
+//# People(color=#ff00ff) In fred.eats
+//# Subset People In fred.eats
+
+//{People} - set of types containing only People Type
+//{p ForAll People p} - set of people elements
+//{p ForAll People p Where p.color=#ff00ff}
+
+//{All People} - set of all people
+
+# bob In
+
+//Jordan thinks eats should be a set of type, not objects, and ate should be instances of the objects in eats

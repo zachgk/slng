@@ -7,12 +7,8 @@ Type Square
     length: Number
     area: length*length
 
-File Text Input input.in
-    c.radius
-
-Let c = Circle()
+Let c = Circle(radius=5)
 s = Square(area=c.area)
 
 Output
-    "Square length: ",s.length
-    "Circle Diameter: ", c.diameter
+    s.length

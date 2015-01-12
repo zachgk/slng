@@ -1,53 +1,55 @@
 import json
-from hypergraph import *
+import hypergraph
 from expr import exprParser
 from compose import Composer
 from common import *
 
 def typeGraph(t, code):
-    g = Hypergraph()
+    g = hypergraph.Hypergraph()
     definition = code['types'][t]
-    g.nodes = {p['binding'] for p in definition['properties']}
+    g.nodes = {hypergraph.Node(name=p['binding'],graph=g) for p in definition['properties']}
     for p in definition['properties']:
         if 'expression' in p:
             expr = p['binding'] + "=" + p['expression']
-            edge = exprParser.parse(p['expression'],returnVars=True)
-            if not edge.issubset(g.nodes): Error(str(edge.difference(g.nodes)) + " are not defined in Type " + t)
-            edge.add(p['binding'])
-            g.addEdge(edge ,expr )
+            edgeVars = exprParser.parse(expr,equation=True,returnVars=True)
+            edgeNodes = {hypergraph.Node(name=n,graph=g) for n in edgeVars}
+            if not edgeNodes.issubset(g.nodes): Error(str(edgeNodes.difference(g.nodes)) + " are not defined in Type " + t)
+            g.edges.add(hypergraph.Edge(nodes=frozenset(edgeNodes),equation=expr))
     return g
 
 def getSubEdge(expr, varGraph):
-    parse = exprParser.parse(expr,returnVars=True)
-    edgeSplit = {tuple(e.split(".")) for e in parse}
-    edgeParts = {e for e in edgeSplit if e[0] in variables}
-    edge = {Node(x[1],varGraph.getNode(x[0])) for x in edgeSplit}
+    parse = exprParser.parse(expr,equation=True,returnVars=True)
+    nodes = set()
+    for e in parse:
+        if '.' in e:
+            nodes.add(varGraph.fromDotRef(e))
+        else:
+            nodes.add(hypergraph.Node(name=e,graph=varGraph))
+    edge = hypergraph.Edge(nodes=frozenset(nodes),equation=expr)
     return edge
     
 
 def getVarGraph(variables,code,typeGraphs):
-    g = Hypergraph()
-    varGraphs = {v:Subgraph(typeGraphs[code['vars'][v]['type']],g).setName(v) for v in variables}
+    g = hypergraph.Hypergraph()
+    varGraphs = {v:hypergraph.NodeGraph(name=v,graph=typeGraphs[code['vars'][v]['type']],parent=g) for v in variables}
     g.nodes = set(varGraphs.values())
     for v in variables:
         for prop,expr in code['vars'][v]['expressions'].items():
-            edge = getSubEdge(expr,g)
-            edge.add(Node(v,g))
-            if prop not in varGraphs[v].graph.nodes: Error("Variable " + v + " does not have property " + prop)
             fullExpr = v + "." + prop + "=" + expr
-            g.addEdge(edge,fullExpr)
+            edge = getSubEdge(fullExpr,g)
+            if varGraphs[v].graph.getNode(prop) is None: Error("Variable " + v + " does not have property " + prop)
+            g.edges.add(edge)
     return g
 
 def fileParse(f, varGraph, comp):
     if f['input']:
         for e in f['expressions']:    
             ref = comp.refDispenser()
-            fullExpr = ref + "=" + e
-            edge = getSubEdge(e,varGraph)
-            n = Node(ref,varGraph)
-            edge.add(n)
+            n = hypergraph.Node(name=ref,graph=varGraph)
             varGraph.nodes.add(n)
-            varGraph.addEdge(edge,fullExpr)
+            fullExpr = ref + "=" + e
+            edge = getSubEdge(fullExpr,varGraph)
+            varGraph.edges.add(edge)
     if f['output']:
         for e in f['expressions']:    
             comp.fileOutput(f['filename'],exprParser.parse(e, main=varGraph))

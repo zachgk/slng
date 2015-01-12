@@ -48,9 +48,8 @@ class exprParser:
         if main is not None:
             def treeCompute(p):
                 try:
-                    split = p.split(".")
-                    g = main.getNode(split[0])
-                    comp = g.treeCompute(g.graph.getNode(split[1]))
+                    node = main.fromDotRef(p)
+                    comp = hypergraph.treeCompute(node)
                     res = solve(comp,symbols(p))
                     return res[0]
                 except Exception as e:
@@ -64,6 +63,7 @@ class exprParser:
         multExpr = (atom + ZeroOrMore( Word("*/") + atom)).setParseAction( lambda s,l,t: opClean(t))
         expr << (multExpr + ZeroOrMore( Word("+-") + multExpr)).setParseAction( lambda s,l,t: opClean(t))
         equality = (expr + equal + expr).setParseAction( lambda s,l,t: Eq(t[0],t[1]) )
+
 
         if equation: res = equality.parseString(expression)[0]
         else: res = expr.parseString(expression)[0]

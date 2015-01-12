@@ -1,11 +1,11 @@
 Type Location
-	Symmetric Set adjacent: Location
+	adjacent: Set Symmetric Location
 	name: String
 
 Type Route
 	start: Location
 	end: Location
-	Set map: Location
+    map: Set Location
 	OrderedList path: Location
 	length: sum([path Consecutive As x,y] distance(x,y))
 	# path[0] == start

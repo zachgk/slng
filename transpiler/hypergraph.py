@@ -3,6 +3,8 @@ from expr import *
 from common import *
 import re
 
+refExpr = re.compile("\{[0-9]+\}")
+
 def absEdge(edge, path):
     nodes = set()
     for n in edge.nodes:
@@ -66,17 +68,22 @@ def treeCompute(nodeRef):
     if res is None: Error("Could not compute " + str(nodeRef))
     return res
 
-def treeComputeRec(root, tree):
+def treeComputeRec(root, tree, returnEquation=False):
     ne = neighborEdges(root)
     rootCycles = {e for e in ne if len(e.nodes)==1}
     if len(rootCycles) > 0:
         return list(rootCycles)[0].equation
+    elif refExpr.match(root.node.name):
+        return True
     else:
         for r,t in tree.items():
+            if root == r:
+                return treeComputeRec(r,t)
             rec = treeComputeRec(r,t)
             if rec is not None:
                 edge = [e for e in ne if r in e.nodes and root in e.nodes][0]
                 exprs = {rec,edge.equation}
+                if rec is True: exprs = {edge.equation}
                 rootSubs= list(getSubs(root).items())
                 rSubs = list(getSubs(r).items())
                 subs = dict(rootSubs + rSubs)
@@ -92,6 +99,26 @@ class Hypergraph:
     def __init__(self):
         self.nodes = set()
         self.edges = set()
+
+    def getNode(self, name, nodeGraph=False):
+        t = Node
+        if nodeGraph: t = NodeGraph
+        for n in self.nodes:
+            if type(n) is t and n.name == name:
+                return n
+        return None
+
+    def fromDotRef(self, dotRef):
+        parents = []
+        currentGraph = self
+        split = dotRef.split('.')
+        for p in split[:-1]:
+            nodeGraph = currentGraph.getNode(p,nodeGraph=True)
+            parents.append(RefParent(graph=currentGraph,nodeGraph=nodeGraph))
+            currentGraph = nodeGraph.graph
+        node = currentGraph.getNode(split[-1])
+        return NodeRef(node=node,parents=tuple(parents))
+        
 
 Node = namedtuple('Node', 'graph name')
 Edge = namedtuple('Edge', 'nodes equation')
