@@ -5,6 +5,7 @@
 import net.sf.json.JSONArray;
 import net.sf.json.JSONObject;
 import org.antlr.v4.runtime.*;
+import org.apache.commons.lang.StringUtils;
 
 import java.io.InputStream;
 import java.util.List;
@@ -35,7 +36,15 @@ public class Converter {
                         JSONObject property = new JSONObject();
                         property.put("binding",bctx.LowerName().getText());
                         if(bctx.expression() != null) property.put("expression",bctx.expression().getText());
-                        if(bctx.dataType() != null) property.put("type",bctx.dataType().getText());
+                        if(bctx.dataType() != null){
+                            String[] typeParts = StringUtils.split(bctx.dataType().getText());
+                            if(typeParts.length == 1) {
+                                property.put("type",typeParts[0]);
+                            } else {
+                                property.put("group",typeParts[0]);
+                                property.put("type",typeParts[1]);
+                            }
+                        }
                         properties.add(property);
                     }
                     type.put("properties",properties);
@@ -48,7 +57,7 @@ public class Converter {
                 JSONObject var = new JSONObject();
                 String name = ctx.LowerName().getText();
                 var.put("name",name);
-                var.put("type",ctx.construction().UpperName().getText());
+                var.put("name", ctx.construction().UpperName().getText());
                 JSONObject expressions = new JSONObject();
                 for (superLangParser.AssignmentDeclarationContext param : ctx.construction().params().assignmentDeclaration()) {
                     expressions.put(param.LowerName().getText(),param.expression().getText());
@@ -78,8 +87,14 @@ public class Converter {
                             file.put(t,true);
                     }
                 }
-                for(superLangParser.ExpressionContext e:ctx.expression()) {
-                    expressions.add(e.getText());
+                for(superLangParser.FileLineContext e:ctx.fileLine()) {
+                    if(e.expression() != null) {
+                        expressions.add(e.expression().getText());
+                    } else {
+                        JSONObject fileLineObj = new JSONObject();
+                        fileLineObj.put("prop", e.loop().prop().getText());
+                        expressions.add(fileLineObj);
+                    }
                 }
                 file.put("expressions",expressions);
                 files.add(file);

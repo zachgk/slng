@@ -1,18 +1,15 @@
+Type Student
+    grades: Set Number
+    taken: len(grades)
+    gpa: sum(grades)/taken
 
-Type Circle
-    radius: Number
-    diameter: 2*radius
-    area: Pi*radius*radius
-Type Square
-    length: Number
-    area: length*length
+File Text Input input.in
+    [s.grades]
+    "-1"
 
-File LineASCII Input input.in
-    c.radius
-
-Let c = Circle()
-s = Square(area=c.area)
+s = Student()
 
 Output
-    s.length
+    "Taken: "+s.taken
+    "GPA: "+s.gpa
 

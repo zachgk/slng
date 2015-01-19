@@ -45,7 +45,10 @@ varDeclaration
     : (LET SPACE)? LowerName EQUALS construction NL;
 
 fileDeclaration
-    : FILE SPACE (UpperName SPACE)+ filename INDENT (expression NL)* DEDENT;
+    : FILE SPACE (UpperName SPACE)+ filename INDENT (fileLine NL)* DEDENT;
+
+fileLine
+    : (expression | loop);
 
 output
     : OUTPUT INDENT (expression NL)* DEDENT;
@@ -63,10 +66,13 @@ params
     : OPEN_PAREN (assignmentDeclaration (COMMA assignmentDeclaration)* )? CLOSE_PAREN;
 
 expression
-    : (prop | INT | PLUS | TIMES | MINUS | DIVIDE | POWER | LowerName | UpperName )+;
+    : (prop | INT | PLUS | TIMES | MINUS | DIVIDE | POWER | OPEN_PAREN | CLOSE_PAREN | LowerName | UpperName | STRING )+;
+
+loop
+    : OPEN_SQUARE prop CLOSE_SQUARE;
 
 dataType
-    : NUMBER | VECTOR;
+    : (SET SPACE)? (NUMBER | VECTOR);
 
 prop
     : LowerName DOT LowerName;
@@ -77,12 +83,14 @@ filename
 word
     : UpperName | LowerName;
 
+STRING: '"' [-0-9a-zA-Z: ]* '"';
 LET: 'Let';
 TYPE: 'Type';
 NUMBER: 'Number';
 VECTOR: 'Vector';
 OUTPUT: 'Output';
 FILE: 'File';
+SET: 'Set';
 
 TIMES: '*';
 PLUS: '+';
@@ -92,6 +100,8 @@ POWER: '^';
 
 OPEN_PAREN: '(';
 CLOSE_PAREN: ')';
+OPEN_SQUARE: '[';
+CLOSE_SQUARE: ']';
 DOT: '.';
 
 EQUALS: ' '* '=' ' '*;
