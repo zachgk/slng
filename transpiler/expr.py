@@ -1,9 +1,15 @@
 from pyparsing import Word, alphas, nums, Forward, ZeroOrMore, Or, Literal, Group, Regex
 from sympy import *
 from common import *
+from collections import namedtuple
 import hypergraph
 import logging
 
+class SetLength (Function):
+    pass
+
+class SetSummation (Function):
+    pass
 
 class exprParser:
     @staticmethod
@@ -26,12 +32,22 @@ class exprParser:
             if s in subs: s = subs[s]
             return symbols(s)
 
+        def getFunction(s):
+            if s[0] == "len":
+                return SetLength(s[1])
+            elif s[0] == "sum":
+                return SetSummation(s[1])
+            else:
+                Error('Unknown slng function ' + s[0])
+
         integer = Word(nums).setParseAction( lambda t: [ int(t[0]) ] )
         decimal = Regex("[0-9]+\.[0-9]").setParseAction( lambda t: [float(t[0])])
         special = Regex("[A-Z][a-zA-Z]*").setParseAction( lambda t: [spec[t[0]]])
         var = Regex("[a-z][a-zA-Z]*").setParseAction( lambda t: [getSymbol(t[0])])
+        lowerName = Regex("[a-z][a-zA-Z]*").setParseAction( lambda t: [t[0]])
         prop = Regex("[a-z][a-zA-Z]*\.[a-z][a-zA-Z]*").setParseAction( lambda t: [getSymbol(t[0])])
         ref = Regex("\{[0-9]+\}").setParseAction( lambda t: [getSymbol(t[0])])
+        string = Regex('"[-0-9a-zA-Z: ]*"').setParseAction( lambda t: [t[0][1:-1]])
 
         opn = {
             "+": (lambda a,b: a+b ),
@@ -43,7 +59,8 @@ class exprParser:
         ops = set(opn.keys())
         def opClean(t):
             if len(t)==1: return t
-            return opClean([opn[t[1]](t[0],t[2])]+t[3:])
+            res = opClean([opn[t[1]](t[0],t[2])]+t[3:])
+            return res
 
         if main is not None:
             def treeCompute(p):
@@ -59,10 +76,12 @@ class exprParser:
 
         expr = Forward()
         paren = (lparen + expr + rparen).setParseAction( lambda s,l,t: t)
-        atom = paren | decimal | integer | ref | prop | special | var
+        function = (lowerName + lparen + (prop | var) + rparen).setParseAction( lambda t: getFunction(t) )
+        atom = function | string | paren | decimal | integer | ref | prop | special | var
         multExpr = (atom + ZeroOrMore( Word("*/") + atom)).setParseAction( lambda s,l,t: opClean(t))
         expr << (multExpr + ZeroOrMore( Word("+-") + multExpr)).setParseAction( lambda s,l,t: opClean(t))
         equality = (expr + equal + expr).setParseAction( lambda s,l,t: Eq(t[0],t[1]) )
+
 
 
         if equation: res = equality.parseString(expression)[0]

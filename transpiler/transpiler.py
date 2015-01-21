@@ -13,7 +13,8 @@ def typeGraph(t, code):
             expr = p['binding'] + "=" + p['expression']
             edgeVars = exprParser.parse(expr,equation=True,returnVars=True)
             edgeNodes = {hypergraph.Node(name=n,graph=g) for n in edgeVars}
-            if not edgeNodes.issubset(g.nodes): Error(str(edgeNodes.difference(g.nodes)) + " are not defined in Type " + t)
+            for n in edgeNodes:
+                if n not in g.nodes and '(' not in n.name: Error(n.name + ' is not defined in type ' + t)
             g.edges.add(hypergraph.Edge(nodes=frozenset(edgeNodes),equation=expr))
     return g
 
@@ -43,13 +44,25 @@ def getVarGraph(variables,code,typeGraphs):
 
 def fileParse(f, varGraph, comp):
     if f['input']:
-        for e in f['expressions']:    
-            ref = comp.fileReadNumber(f['filename'])
-            n = hypergraph.Node(name=ref,graph=varGraph)
-            varGraph.nodes.add(n)
-            fullExpr = ref + "=" + e
-            edge = getSubEdge(fullExpr,varGraph)
-            varGraph.edges.add(edge)
+        exp_iter = iter(f['expressions'])
+        for e in exp_iter:
+            if type(e) is str:
+                ref = comp.fileReadNumber(f['filename'])
+                n = hypergraph.Node(name=ref,graph=varGraph)
+                varGraph.nodes.add(n)
+                fullExpr = ref + "=" + e
+                edge = getSubEdge(fullExpr,varGraph)
+                varGraph.edges.add(edge)
+            else:
+                terminator = next(exp_iter)
+                ref = comp.fileReadUntil(f['filename'],terminator)
+                n = hypergraph.Node(name=ref,graph=varGraph)
+                varGraph.nodes.add(n)
+                fullExpr = ref + "=" + e['prop']
+                edge = getSubEdge(fullExpr,varGraph)
+                varGraph.edges.add(edge)
+        for i in range(len(f['expressions'])):
+            e = f['expressions'][i]
     if f['output']:
         for e in f['expressions']:    
             comp.fileOutput(f['filename'],exprParser.parse(e, main=varGraph))

@@ -1,6 +1,7 @@
 import string
 from sympy import *
 from common import *
+from expr import *
 
 class Composer:
 
@@ -40,16 +41,30 @@ class Composer:
         if f[0] not in self.fileInputStreams:
             self.fileInputStreams[f[0]] = list()
         r = self.refDispenser()
-        self.fileInputStreams[f[0]].append(r)
+        self.fileInputStreams[f[0]].append({"ref":r,"type":"single"})
         v = self.varDispenser()
         self.refVars[r] = v
         return r
         
+    def fileReadUntil(self, filename, terminator):
+        self.include("<iostream>")
+        self.include("<fstream>")
+        self.include("<vector>")
+        f = self.getFile(filename, "ifstream")
+        if f[0] not in self.fileInputStreams:
+            self.fileInputStreams[f[0]] = list()
+        r = self.refDispenser()
+        self.fileInputStreams[f[0]].append({"ref":r,"type":"terminated","terminator":terminator})
+        v = self.varDispenser()
+        self.refVars[r] = v
+        return r
+    
 
     def expression(self, expr):
         if isinstance(expr,Mul):
             return '*'.join([self.expression(e) for e in expr.as_ordered_factors()])
         elif isinstance(expr,Pow):
+            self.include("<math.h>")
             e = expr.as_base_exp()
             return 'pow('+self.expression(e[0])+','+self.expression(e[1])+')'
         elif isinstance(expr,Integer):
@@ -60,14 +75,19 @@ class Composer:
                 return self.refVars[s]
             else:
                 Error('Invalid symbol in output expression: ' + s)
+        elif isinstance(expr, SetLength):
+            return self.refVars[expr.args[0].name] + '.size()';
+        elif isinstance(expr, SetSummation):
+            self.include("<numeric>")
+            s = self.refVars[expr.args[0].name]
+            return "accumulate(" + s + ".begin()," + s + ".end(),0)"
         elif expr == pi:
             self.include("<math.h>")
             return 'M_PI'
         elif expr == S.Half:
             return '.5'
         else:
-            Error("Unknown expression type: " + str(type(expr)))
-        return str(expr)
+            Error("Unknown composed expression type: " + str(type(expr)))
 
     def output(self, source, s):
         self.outputs.append(source + " << " + self.expression(s) + " << endl")
@@ -91,7 +111,7 @@ class Composer:
         def lines(l):
             return "".join([line(s) for s in l])
         def block(head,body):
-            return head+"{\n"+body+"}"
+            return head+"{\n"+body+"}\n"
 
         c = ""
         c+= forceLines(self.includes)
@@ -99,8 +119,19 @@ class Composer:
         main = fileDeclarations(self.files)
         for fileVar,inputStream in self.fileInputStreams.items():
             for item in inputStream:
-                main+= line("double " + self.refVars[item])
-                main+= line(fileVar + " >> " + self.refVars[item])
+                s = self.refVars[item['ref']]
+                if item['type'] == 'terminated':
+                    main+= line("vector<int> " + s)
+                    body = line("int temp")
+                    body += line(fileVar + " >> temp")
+                    body += line("if(temp==" + item['terminator'][1:-1] + ") break")
+                    body += line(s + ".push_back(temp)")
+                    main+= block("while(true)",body)
+                elif item['type'] == 'single':
+                    main+= line("double " + s)
+                    main+= line(fileVar + " >> " + s)
+                else:
+                    Error('Unhandled input type: ' + item['type'])
         main += lines(self.outputs)
         main += line("return 0")
         c+= block("int main()",main)

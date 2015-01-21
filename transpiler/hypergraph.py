@@ -89,7 +89,8 @@ def treeComputeRec(root, tree, returnEquation=False):
                     goal = rootSubs[0][1]
                 else:
                     goal = root.node.name
-                return exprParser.solve(exprs,goal,subs=subs)
+                res = exprParser.solve(exprs,goal,subs=subs)
+                return res
     return None
 
 

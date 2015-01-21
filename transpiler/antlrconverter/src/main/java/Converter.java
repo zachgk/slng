@@ -57,7 +57,7 @@ public class Converter {
                 JSONObject var = new JSONObject();
                 String name = ctx.LowerName().getText();
                 var.put("name",name);
-                var.put("name", ctx.construction().UpperName().getText());
+                var.put("type", ctx.construction().UpperName().getText());
                 JSONObject expressions = new JSONObject();
                 for (superLangParser.AssignmentDeclarationContext param : ctx.construction().params().assignmentDeclaration()) {
                     expressions.put(param.LowerName().getText(),param.expression().getText());
