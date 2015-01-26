@@ -4,6 +4,7 @@ from expr import exprParser
 from compose import Composer
 from common import *
 
+
 def typeGraph(t, code):
     g = hypergraph.Hypergraph()
     definition = code['types'][t]

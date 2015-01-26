@@ -1,8 +1,8 @@
 # Installation
-There are two major components, the main python component and the antlrconverter.  Before using the antlrconverter, you have to build it using "mvn install" inside it's directory.  
+There are two major components, the main python component and the antlrconverter.  Before using the antlrconverter, you have to build it using "mvn install" inside it's directory, although this is run automatically through make.
 
 # Running
-The code to be run goes inside the /transpiler/code.slng file.  After that, use "make all" in order to transpile and run the code.
+The code to be run goes inside the /transpiler/code.slng file.  After that, use "make" in order to transpile and run the code.
 
 # Components
 antlrconverter - Converts code.slng into code.json for more computer readable alternative to code
