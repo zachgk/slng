@@ -1,14 +1,16 @@
 Type Student
     grades: Set Number
+    count: len(grades)
     gpa: sum(grades)/len(grades)
 
 File Text Input input.in
-    [s.grades]
+    [s In students]
+        s.count
+        [count s.grades]
     "-1"
 
-s = Student()
+students = Set Student()
 
 Output
-    sum(s.grades)
-    len(s.grades)
-    s.gpa
+    [s In students]
+        sum(s.gpa)

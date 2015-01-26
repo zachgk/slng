@@ -1,0 +1,22 @@
+Type PNG
+    pixels: List(2) Pixel
+    width: len(pixels)
+    height: len(pixels[0])
+
+Type Pixel
+    color: Color
+
+Type Rotate180
+    a: PNG
+    b: PNG
+    # a.width == b.width
+    # a.height == b.height
+    # ([Index i In pixels][Index j In pixels[i]] a[i][j] == b[width-i-1][height-j-1])
+
+pics = Rotate180()
+
+Input File PNG in.png
+   pics.a 
+
+Output File PNG out.png
+   pics.b
