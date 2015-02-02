@@ -8,6 +8,7 @@ class Composer:
     def __init__(self):
         self.var = -1
         self.refs = 0
+        self.temps = 0
         self.imports = ""
         self.outputs = []
         self.includes = set()
@@ -29,36 +30,42 @@ class Composer:
         self.refs+=1
         return "{" + str(self.refs) + "}"
 
+    def tempDispenser(self):
+        self.temps+=1
+        return "<" + str(self.temps) + ">"
+
     def getFile(self, filename, io):
         if filename not in self.files: 
             self.files[filename] = (self.varDispenser(),io)
         return self.files[filename]
 
-    def fileReadNumber(self, filename):
-        self.include("<iostream>")
-        self.include("<fstream>")
-        f = self.getFile(filename, "ifstream")
-        if f[0] not in self.fileInputStreams:
-            self.fileInputStreams[f[0]] = list()
-        r = self.refDispenser()
-        self.fileInputStreams[f[0]].append({"ref":r,"type":"single"})
-        v = self.varDispenser()
-        self.refVars[r] = v
-        return r
-        
-    def fileReadUntil(self, filename, terminator):
-        self.include("<iostream>")
-        self.include("<fstream>")
-        self.include("<vector>")
-        f = self.getFile(filename, "ifstream")
-        if f[0] not in self.fileInputStreams:
-            self.fileInputStreams[f[0]] = list()
-        r = self.refDispenser()
-        self.fileInputStreams[f[0]].append({"ref":r,"type":"terminated","terminator":terminator})
-        v = self.varDispenser()
-        self.refVars[r] = v
+    def fileRead(self, filename, operation):
+        self.fileInputStreams[f[0]].append(operation)
         return r
     
+    def inputFile(self, filename, expressions):
+        self.include("<iostream>")
+        self.include("<fstream>")
+        f = self.getFile(filename, "ifstream")
+        if f[0] not in self.fileInputStreams:
+            self.fileInputStreams[f[0]] = list()
+
+    def readFile(self, operation):
+        r = self.refDispenser()
+        operation['ref'] = r
+        v = self.varDispenser()
+        self.refVars[r] = v
+        return r, operation
+
+    def readNumber(self):
+        return {"type":"single"}
+    
+    def readUntil(self, terminator):
+        self.include("<vector>")
+        return {"type":"terminated","terminator":terminator}
+
+    def readOver(self, elements):
+        return {"type":"end", "elements": elements}
 
     def expression(self, expr):
         if isinstance(expr,Mul):

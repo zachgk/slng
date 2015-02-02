@@ -99,11 +99,9 @@ class Hypergraph:
         self.nodes = set()
         self.edges = set()
 
-    def getNode(self, name, nodeGraph=False):
-        t = Node
-        if nodeGraph: t = NodeGraph
+    def getNode(self, name):
         for n in self.nodes:
-            if type(n) is t and n.name == name:
+            if n.name == name:
                 return n
         return None
 
@@ -112,7 +110,8 @@ class Hypergraph:
         currentGraph = self
         split = dotRef.split('.')
         for p in split[:-1]:
-            nodeGraph = currentGraph.getNode(p,nodeGraph=True)
+            nodeGraph = currentGraph.getNode(p)
+            if nodeGraph is None: Error("Failed to get dotRef of " + dotRef)
             parents.append(RefParent(graph=currentGraph,nodeGraph=nodeGraph))
             currentGraph = nodeGraph.graph
         node = currentGraph.getNode(split[-1])

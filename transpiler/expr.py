@@ -28,8 +28,11 @@ class exprParser:
         }
 
         def getSymbol(s):
-            varSet.add(s) 
             if s in subs: s = subs[s]
+            for sub in subs:
+                if sub + "." in s:
+                    s = s.replace(sub + ".", subs[sub] + ".")
+            varSet.add(s) 
             return symbols(s)
 
         def getFunction(s):

@@ -5,12 +5,12 @@ Type Student
 
 File Text Input input.in
     [s In students]
-        s.count
-        [count s.grades]
-    "-1"
+        [s.grades]
+        "-1"
 
 students = Set Student()
 
 Output
     [s In students]
         sum(s.gpa)
+

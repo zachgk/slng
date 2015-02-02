@@ -42,16 +42,19 @@ typeDeclaration
     : TYPE SPACE UpperName (INDENT bindingDeclaration* DEDENT)?;
 
 varDeclaration
-    : (LET SPACE)? LowerName EQUALS construction NL;
+    : (LET SPACE)? LowerName EQUALS group construction NL;
 
 fileDeclaration
-    : FILE SPACE (UpperName SPACE)+ filename INDENT (fileLine NL)* DEDENT;
+    : FILE SPACE (UpperName SPACE)+ filename INDENT exprLines DEDENT;
 
-fileLine
+exprLines
+    : exprLine (NL exprLine)* NL?;
+
+exprLine
     : (expression | loop);
 
 output
-    : OUTPUT INDENT (expression NL)* DEDENT;
+    : OUTPUT INDENT exprLines DEDENT;
     
 bindingDeclaration
     : LowerName COLON (expression | dataType)  NL;
@@ -69,10 +72,19 @@ expression
     : (prop | INT | PLUS | TIMES | MINUS | DIVIDE | POWER | OPEN_PAREN | CLOSE_PAREN | LowerName | UpperName | STRING )+;
 
 loop
+    : propLoop | objLoop;
+
+propLoop
     : OPEN_SQUARE prop CLOSE_SQUARE;
 
+objLoop
+    : OPEN_SQUARE LowerName SPACE IN SPACE LowerName CLOSE_SQUARE INDENT (exprLine NL)* DEDENT;
+
 dataType
-    : (SET SPACE)? (NUMBER | VECTOR);
+    :  group (NUMBER | VECTOR);
+
+group
+    : (SET SPACE)?;
 
 prop
     : LowerName DOT LowerName;
@@ -91,6 +103,7 @@ VECTOR: 'Vector';
 OUTPUT: 'Output';
 FILE: 'File';
 SET: 'Set';
+IN: 'In';
 
 TIMES: '*';
 PLUS: '+';
