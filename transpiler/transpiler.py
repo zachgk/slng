@@ -1,7 +1,8 @@
 import json
 import hypergraph
 from expr import exprParser
-from compose import Composer
+from compose import compose
+from collector import Collector
 from common import *
 
 
@@ -46,30 +47,30 @@ def getVarGraph(variables,code,typeGraphs):
     return g
 
 
-def parseOutputLines(expressions, varGraph, comp):
+def parseOutputLines(expressions, varGraph, collector):
     stream = list()
     for e in expressions:
         if type(e) is str:
             print("fixed output stream")
             stream.append("1")
-            # stream.append(comp.outExpr(exprParser.parse(e, main=varGraph)))
+            # stream.append(collector.outExpr(exprParser.parse(e, main=varGraph)))
         else:
             if 'prop' in e:
                 print(e)
                 Error('Print list of elements')
             else:
-                stream.append(comp.outOver(parseOutputLines(e['expressions'], varGraph, comp)))
+                stream.append(collector.outOver(parseOutputLines(e['expressions'], varGraph, collector)))
     return stream
 
     
 
-def parseExprLines(expressions, varGraph, typeGraphs, comp, parentGraph=None, subs=dict()):
+def parseExprLines(expressions, varGraph, typeGraphs, collector, parentGraph=None, subs=dict()):
     if parentGraph is None: parentGraph = varGraph
     stream = list()
     exp_iter = iter(expressions)
     for e in exp_iter:
         if type(e) is str:
-            ref, op = comp.readFile(comp.readNumber())
+            ref, op = collector.readFile(collector.readNumber())
             n = hypergraph.Node(name=ref,graph=parentGraph)
             parentGraph.nodes.add(n)
             fullExpr = ref + "=" + e
@@ -79,7 +80,7 @@ def parseExprLines(expressions, varGraph, typeGraphs, comp, parentGraph=None, su
         else:
             if 'prop' in e:
                 terminator = next(exp_iter)
-                ref, op = comp.readFile(comp.readUntil(terminator))
+                ref, op = collector.readFile(collector.readUntil(terminator))
                 n = hypergraph.Node(name=ref,graph=parentGraph)
                 parentGraph.nodes.add(n)
                 fullExpr = ref + "=" + e['prop']
@@ -87,29 +88,29 @@ def parseExprLines(expressions, varGraph, typeGraphs, comp, parentGraph=None, su
                 parentGraph.edges.add(edge)
                 stream.append(op)
             else:
-                temp = comp.tempDispenser()
+                temp = collector.tempDispenser()
                 tempGraph = parentGraph.getNode(e['loopVar']).graph
                 tn = hypergraph.NodeGraph(name=temp, graph=tempGraph, parent=parentGraph)
                 parentGraph.nodes.add(tn)
                 g = hypergraph.Hypergraph()
                 subs[e['loopRef']] = temp
-                elements = parseExprLines(e['expressions'], varGraph, typeGraphs, comp, parentGraph=g, subs=subs)
-                ref, op = comp.readFile(comp.readOver(elements))
+                elements = parseExprLines(e['expressions'], varGraph, typeGraphs, collector, parentGraph=g, subs=subs)
+                ref, op = collector.readFile(collector.readOver(elements))
                 n = hypergraph.NodeGraph(name=ref, graph=g, parent=parentGraph)
                 parentGraph.nodes.add(n)
                 stream.append(op)
     return stream
     
 
-def fileParse(f, varGraph, typeGraphs, comp):
+def fileParse(f, varGraph, typeGraphs, collector):
     if f['input']:
-        comp.inputFile(f['filename'], parseExprLines(f['expressions'], varGraph, typeGraphs, comp))
+        collector.inputFile(f['filename'], parseExprLines(f['expressions'], varGraph, typeGraphs, collector))
     if f['output']:
         for e in f['expressions']:    
-            comp.outputFile(f['filename'], parseOutputLines(f['expressions'], varGraph, comp))
+            collector.outputFile(f['filename'], parseOutputLines(f['expressions'], varGraph, collector))
 
 with open('code.json') as f:
-    comp = Composer()
+    collector = Collector()
     code = json.loads(f.readline())
     variables = code['vars'].keys()
     types = code['types'].keys()
@@ -117,7 +118,9 @@ with open('code.json') as f:
     varGraph= getVarGraph(variables,code,typeGraphs)
     if 'files' in code:
         for f in code['files']:
-            fileParse(f,varGraph, typeGraphs, comp)
+            fileParse(f,varGraph, typeGraphs, collector)
     if 'output' in code:
-        comp.outputStandard(parseOutputLines(code['output'], varGraph, comp))
-    comp.composeFile("code.cpp")
+        collector.outputStandard(parseOutputLines(code['output'], varGraph, collector))
+    cpp = compose(collector)
+    with open("code.cpp", 'w') as f:
+        f.write(cpp)

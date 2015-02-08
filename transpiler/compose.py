@@ -3,169 +3,89 @@ from sympy import *
 from common import *
 from expr import *
 
-class Composer:
-
-    def __init__(self):
-        self.var = -1
-        self.refs = 0
-        self.temps = 0
-        self.imports = ""
-        self.includes = set()
-        self.files = dict()
-        self.inputStreams = dict()
-        self.outputStreams = dict()
-        self.refVars = dict()
-
-    def include(self, s):
-        self.includes.add("#include " + s)
-
-    def varDispenser(self):
-        def char(n):
-            if n<26: return chr(n+97)
-            return char(int(n/26))+chr(n%26+97)
-        self.var+=1
-        return char(self.var) 
-
-    def refDispenser(self):
-        self.refs+=1
-        return "{" + str(self.refs) + "}"
-
-    def tempDispenser(self):
-        self.temps+=1
-        return "<" + str(self.temps) + ">"
-
-    # def getFile(self, filename, io):
-        # if filename not in self.files: 
-            # self.files[filename] = (self.varDispenser(),io)
-        # return self.files[filename]
-
-    def inputFile(self, filename, expressions):
-        self.include("<iostream>")
-        self.include("<fstream>")
-        self.inputStreams[filename] = expressions
-
-    def readFile(self, operation):
-        r = self.refDispenser()
-        operation['ref'] = r
-        v = self.varDispenser()
-        self.refVars[r] = v
-        return r, operation
-
-    def readNumber(self):
-        return {"type":"single"}
-    
-    def readUntil(self, terminator):
-        return {"type":"terminated","terminator":terminator}
-
-    def readOver(self, elements):
-        return {"type":"end", "elements": elements}
-
-    def outExpr(self, expr):
-        return {"type":"expr", "expr":expr}
-
-    def outOver(self, elements):
-        return {"type":"end", "elements": elements}
-
-    def outputFile(self, expressions):
-        self.include("<iostream>")
-        self.include("<fstream>")
-        self.outputStreams[filename] = expressions
-
-    def outputStandard(self, expressions):
-        self.include("<iostream>")
-        self.outputStreams["standard"] = expressions
-
-
-    # def output(self, source, s):
-        # self.outputs.append(source + " << " + self.expression(s) + " << endl")
-
-    # def standardOutput(self, s):
-        # self.include("<iostream>")
-        # self.output("cout",s)
-
-    # def fileOutput(self, filename, s):
-        # self.include("<iostream>")
-        # f = self.getFile(filename, "ofstream")
-        # self.output(f[0],s)
-
-    def expression(self, expr):
-        if isinstance(expr,Mul):
-            return '*'.join([self.expression(e) for e in expr.as_ordered_factors()])
-        elif isinstance(expr,Pow):
-            self.include("<math.h>")
-            e = expr.as_base_exp()
-            return 'pow('+self.expression(e[0])+','+self.expression(e[1])+')'
-        elif isinstance(expr,Integer):
-            return str(expr)
-        elif isinstance(expr,Symbol):
-            s = expr.name
-            if refExpr.match(s):
-                return self.refVars[s]
-            else:
-                Error('Invalid symbol in output expression: ' + s)
-        elif isinstance(expr, SetLength):
-            return self.refVars[expr.args[0].name] + '.size()';
-        elif isinstance(expr, SetSummation):
-            self.include("<numeric>")
-            s = self.refVars[expr.args[0].name]
-            return "accumulate(" + s + ".begin()," + s + ".end(),0)"
-        elif expr == pi:
-            self.include("<math.h>")
-            return 'M_PI'
-        elif expr == S.Half:
-            return '.5'
+def expression(self, expr):
+    if isinstance(expr,Mul):
+        return '*'.join([self.expression(e) for e in expr.as_ordered_factors()])
+    elif isinstance(expr,Pow):
+        self.include("<math.h>")
+        e = expr.as_base_exp()
+        return 'pow('+self.expression(e[0])+','+self.expression(e[1])+')'
+    elif isinstance(expr,Integer):
+        return str(expr)
+    elif isinstance(expr,Symbol):
+        s = expr.name
+        if refExpr.match(s):
+            return self.refVars[s]
         else:
-            Error("Unknown composed expression type: " + str(type(expr)))
+            Error('Invalid symbol in output expression: ' + s)
+    elif isinstance(expr, SetLength):
+        return self.refVars[expr.args[0].name] + '.size()';
+    elif isinstance(expr, SetSummation):
+        self.include("<numeric>")
+        s = self.refVars[expr.args[0].name]
+        return "accumulate(" + s + ".begin()," + s + ".end(),0)"
+    elif expr == pi:
+        self.include("<math.h>")
+        return 'M_PI'
+    elif expr == S.Half:
+        return '.5'
+    else:
+        Error("Unknown composed expression type: " + str(type(expr)))
 
-    def compose(self):
-        def line(s):
-            return s+";\n"
-        def forceLines(l):
-            return "".join(s + "\n" for s in l)
-        def lines(l):
-            return "".join([line(s) for s in l])
-        def block(head,body):
-            return head+"{\n"+body+"}\n"
+def line(s):
+    return s+";\n"
+def forceLines(l):
+    return "".join(s + "\n" for s in l)
+def lines(l):
+    return "".join([line(s) for s in l])
+def block(head,body):
+    return head+"{\n"+body+"}\n"
+def include(s):
+    return "#include " + s + "\n"
 
-        fileDeclarations = ""
-        main = ""
-        for name, inputStream in self.inputStreams.items():
-            if name == "standard":
-                var = "cout"
+def compose(collector):
+    fileDeclarations = ""
+    main = ""
+    includes = set()
+    for name, inputStream in collector.inputStreams.items():
+        if name == "standard":
+            var = "cout"
+            includes.add("<iostream>")
+        else:
+            var = collector.varDispenser()
+            fileDeclarations+=line('ifstream ' + var + '("' + name + '")')
+            includes.add("<iostream>")
+            includes.add("<fstream>")
+        for item in inputStream:
+            s = collector.refVars[item['ref']]
+            if item['type'] == 'terminated':
+                includes.add("<vector>")
+                main+= line("vector<int> " + s)
+                body = line("int temp")
+                body += line(var + " >> temp")
+                body += line("if(temp==" + item['terminator'][1:-1] + ") break")
+                body += line(s + ".push_back(temp)")
+                main+= block("while(true)",body)
+            elif item['type'] == 'single':
+                main+= line("double " + s)
+                main+= line(var + " >> " + s)
             else:
-                var = self.varDispenser()
-                fileDeclarations+=line('ifstream ' + var + '("' + name + '")')
-            for item in inputStream:
-                s = self.refVars[item['ref']]
-                if item['type'] == 'terminated':
-                    self.include("<vector>")
-                    main+= line("vector<int> " + s)
-                    body = line("int temp")
-                    body += line(var + " >> temp")
-                    body += line("if(temp==" + item['terminator'][1:-1] + ") break")
-                    body += line(s + ".push_back(temp)")
-                    main+= block("while(true)",body)
-                elif item['type'] == 'single':
-                    main+= line("double " + s)
-                    main+= line(var + " >> " + s)
-                else:
-                    Error('Unhandled input type: ' + item['type'])
-        for name, outputStream in self.outputStreams.items():
-            if name == "standard":
-                var = "cout"
-            else:
-                var = self.varDispenser()
-                fileDeclarations+=line('ofstream ' + var + '("' + name + '")')
-            for item in outputStream:
-                pass
-        Error("outputs")
-        main += line("return 0")
-        c = ""
-        c+= forceLines(self.includes)
-        c+= line("using namespace std")
-        c+= block("int main()",main)
-        return c
-
-    def composeFile(self, filename):
-        with open(filename, 'w') as f:
-            f.write(self.compose())
+                Error('Unhandled input type: ' + item['type'], item)
+    for name, outputStream in collector.outputStreams.items():
+        if name == "standard":
+            var = "cout"
+            includes.add("<iostream>")
+        else:
+            var = collector.varDispenser()
+            fileDeclarations+=line('ofstream ' + var + '("' + name + '")')
+            includes.add("<iostream>")
+            includes.add("<fstream>")
+        for item in outputStream:
+            pass
+    Error("outputs")
+    main += line("return 0")
+    c = ""
+    c+= "".join([include(i) for i in includes])
+    c+= line("using namespace std")
+    c+= block("int main()",main)
+    return c
