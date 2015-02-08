@@ -10,10 +10,10 @@ class Composer:
         self.refs = 0
         self.temps = 0
         self.imports = ""
-        self.outputs = []
         self.includes = set()
         self.files = dict()
-        self.fileInputStreams = dict()
+        self.inputStreams = dict()
+        self.outputStreams = dict()
         self.refVars = dict()
 
     def include(self, s):
@@ -34,21 +34,15 @@ class Composer:
         self.temps+=1
         return "<" + str(self.temps) + ">"
 
-    def getFile(self, filename, io):
-        if filename not in self.files: 
-            self.files[filename] = (self.varDispenser(),io)
-        return self.files[filename]
+    # def getFile(self, filename, io):
+        # if filename not in self.files: 
+            # self.files[filename] = (self.varDispenser(),io)
+        # return self.files[filename]
 
-    def fileRead(self, filename, operation):
-        self.fileInputStreams[f[0]].append(operation)
-        return r
-    
     def inputFile(self, filename, expressions):
         self.include("<iostream>")
         self.include("<fstream>")
-        f = self.getFile(filename, "ifstream")
-        if f[0] not in self.fileInputStreams:
-            self.fileInputStreams[f[0]] = list()
+        self.inputStreams[filename] = expressions
 
     def readFile(self, operation):
         r = self.refDispenser()
@@ -61,11 +55,38 @@ class Composer:
         return {"type":"single"}
     
     def readUntil(self, terminator):
-        self.include("<vector>")
         return {"type":"terminated","terminator":terminator}
 
     def readOver(self, elements):
         return {"type":"end", "elements": elements}
+
+    def outExpr(self, expr):
+        return {"type":"expr", "expr":expr}
+
+    def outOver(self, elements):
+        return {"type":"end", "elements": elements}
+
+    def outputFile(self, expressions):
+        self.include("<iostream>")
+        self.include("<fstream>")
+        self.outputStreams[filename] = expressions
+
+    def outputStandard(self, expressions):
+        self.include("<iostream>")
+        self.outputStreams["standard"] = expressions
+
+
+    # def output(self, source, s):
+        # self.outputs.append(source + " << " + self.expression(s) + " << endl")
+
+    # def standardOutput(self, s):
+        # self.include("<iostream>")
+        # self.output("cout",s)
+
+    # def fileOutput(self, filename, s):
+        # self.include("<iostream>")
+        # f = self.getFile(filename, "ofstream")
+        # self.output(f[0],s)
 
     def expression(self, expr):
         if isinstance(expr,Mul):
@@ -96,51 +117,52 @@ class Composer:
         else:
             Error("Unknown composed expression type: " + str(type(expr)))
 
-    def output(self, source, s):
-        self.outputs.append(source + " << " + self.expression(s) + " << endl")
-
-    def standardOutput(self, s):
-        self.include("<iostream>")
-        self.output("cout",s)
-
-    def fileOutput(self, filename, s):
-        self.include("<iostream>")
-        f = self.getFile(filename, "ofstream")
-        self.output(f[0],s)
-
     def compose(self):
         def line(s):
             return s+";\n"
         def forceLines(l):
             return "".join(s + "\n" for s in l)
-        def fileDeclarations(files):
-            return "".join([line(f[1] + " " + f[0] + '("' + v + '")') for v,f in files.items()])
         def lines(l):
             return "".join([line(s) for s in l])
         def block(head,body):
             return head+"{\n"+body+"}\n"
 
-        c = ""
-        c+= forceLines(self.includes)
-        c+= line("using namespace std")
-        main = fileDeclarations(self.files)
-        for fileVar,inputStream in self.fileInputStreams.items():
+        fileDeclarations = ""
+        main = ""
+        for name, inputStream in self.inputStreams.items():
+            if name == "standard":
+                var = "cout"
+            else:
+                var = self.varDispenser()
+                fileDeclarations+=line('ifstream ' + var + '("' + name + '")')
             for item in inputStream:
                 s = self.refVars[item['ref']]
                 if item['type'] == 'terminated':
+                    self.include("<vector>")
                     main+= line("vector<int> " + s)
                     body = line("int temp")
-                    body += line(fileVar + " >> temp")
+                    body += line(var + " >> temp")
                     body += line("if(temp==" + item['terminator'][1:-1] + ") break")
                     body += line(s + ".push_back(temp)")
                     main+= block("while(true)",body)
                 elif item['type'] == 'single':
                     main+= line("double " + s)
-                    main+= line(fileVar + " >> " + s)
+                    main+= line(var + " >> " + s)
                 else:
                     Error('Unhandled input type: ' + item['type'])
-        main += lines(self.outputs)
+        for name, outputStream in self.outputStreams.items():
+            if name == "standard":
+                var = "cout"
+            else:
+                var = self.varDispenser()
+                fileDeclarations+=line('ofstream ' + var + '("' + name + '")')
+            for item in outputStream:
+                pass
+        Error("outputs")
         main += line("return 0")
+        c = ""
+        c+= forceLines(self.includes)
+        c+= line("using namespace std")
         c+= block("int main()",main)
         return c
 

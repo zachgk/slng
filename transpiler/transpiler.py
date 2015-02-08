@@ -21,9 +21,6 @@ def typeGraph(t, code):
 
 def getSubEdge(expr, varGraph, subs=dict()):
     parse = exprParser.parse(expr,equation=True,returnVars=True, subs=subs)
-    print('parsed')
-    print(parse)
-    print(subs)
     nodes = set()
     for e in parse:
         if '.' in e:
@@ -47,6 +44,24 @@ def getVarGraph(variables,code,typeGraphs):
             if varGraphs[v].graph.getNode(prop) is None: Error("Variable " + v + " does not have property " + prop)
             g.edges.add(edge)
     return g
+
+
+def parseOutputLines(expressions, varGraph, comp):
+    stream = list()
+    for e in expressions:
+        if type(e) is str:
+            print("fixed output stream")
+            stream.append("1")
+            # stream.append(comp.outExpr(exprParser.parse(e, main=varGraph)))
+        else:
+            if 'prop' in e:
+                print(e)
+                Error('Print list of elements')
+            else:
+                stream.append(comp.outOver(parseOutputLines(e['expressions'], varGraph, comp)))
+    return stream
+
+    
 
 def parseExprLines(expressions, varGraph, typeGraphs, comp, parentGraph=None, subs=dict()):
     if parentGraph is None: parentGraph = varGraph
@@ -91,24 +106,18 @@ def fileParse(f, varGraph, typeGraphs, comp):
         comp.inputFile(f['filename'], parseExprLines(f['expressions'], varGraph, typeGraphs, comp))
     if f['output']:
         for e in f['expressions']:    
-            comp.fileOutput(f['filename'],exprParser.parse(e, main=varGraph))
+            comp.outputFile(f['filename'], parseOutputLines(f['expressions'], varGraph, comp))
 
 with open('code.json') as f:
     comp = Composer()
-    collector = Collector()
-    prog = GraphProgram()
     code = json.loads(f.readline())
-    prog.variables = code['vars'].keys()
-    prog.types = code['types'].keys()
-    prog.typeGraphs = {t:typeGraph(t,code) for t in types}
-    prog.varGraph= getVarGraph(variables,code,typeGraphs)
+    variables = code['vars'].keys()
+    types = code['types'].keys()
+    typeGraphs = {t:typeGraph(t,code) for t in types}
+    varGraph= getVarGraph(variables,code,typeGraphs)
     if 'files' in code:
         for f in code['files']:
             fileParse(f,varGraph, typeGraphs, comp)
     if 'output' in code:
-        p = parseExprLines(code['output'], varGraph, typeGraphs, comp)
-        print(p)
-        Error('stop')
-        for o in code['output']:
-            comp.standardOutput(exprParser.parse(o, main=varGraph))
+        comp.outputStandard(parseOutputLines(code['output'], varGraph, comp))
     comp.composeFile("code.cpp")
