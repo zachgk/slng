@@ -28,9 +28,8 @@ def getSubEdge(expr, varGraph, subs=dict()):
             nodes.add(varGraph.fromDotRef(e))
         else:
             nodes.add(hypergraph.Node(name=e,graph=varGraph))
-    for s in subs:
-        expr = expr.replace(s + ".", subs[s] + ".")
     edge = hypergraph.Edge(nodes=frozenset(nodes),equation=expr)
+    expr = applySubs(expr, subs)
     return edge
     
 
@@ -70,7 +69,7 @@ def parseExprLines(expressions, varGraph, typeGraphs, collector, parentGraph=Non
     exp_iter = iter(expressions)
     for e in exp_iter:
         if type(e) is str:
-            ref, op = collector.readFile(collector.readNumber())
+            ref, op = collector.readFile(collector.readAtom())
             n = hypergraph.Node(name=ref,graph=parentGraph)
             parentGraph.nodes.add(n)
             fullExpr = ref + "=" + e
@@ -83,11 +82,16 @@ def parseExprLines(expressions, varGraph, typeGraphs, collector, parentGraph=Non
                 ref, op = collector.readFile(collector.readUntil(terminator))
                 n = hypergraph.Node(name=ref,graph=parentGraph)
                 parentGraph.nodes.add(n)
-                fullExpr = ref + "=" + e['prop']
+                fullExpr = ref + "=" + applySubs(e['prop'],subs)
                 edge = getSubEdge(fullExpr,varGraph, subs=subs)
                 parentGraph.edges.add(edge)
                 stream.append(op)
             else:
+                subs[e['loopRef']] = e['loopVar']
+                elements = parseExprLines(e['expressions'], varGraph, typeGraphs, collector, subs=subs)
+                print(e)
+                print(elements)
+                Error("Set parse")
                 temp = collector.tempDispenser()
                 tempGraph = parentGraph.getNode(e['loopVar']).graph
                 tn = hypergraph.NodeGraph(name=temp, graph=tempGraph, parent=parentGraph)

@@ -40,7 +40,7 @@ class Collector:
         self.refVars[r] = v
         return r, operation
 
-    def readNumber(self):
+    def readAtom(self):
         return {"type":"single"}
     
     def readUntil(self, terminator):

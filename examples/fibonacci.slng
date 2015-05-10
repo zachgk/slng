@@ -1,0 +1,40 @@
+Type Fib
+    index: Number
+    i: index
+    ### index
+        # 0
+            value: 0
+        # 1
+            value: 1
+        # Otherwise
+            value: Fib(i-1).value + Fib(i-2).value
+
+Type Fib
+    index: Number
+    i: index
+    half: ceil(i/2)
+    p1: Fib(half).value
+    p2: Fib(half-1).value
+    value: (Phi^i - ((-1)^i)/(Phi^i))/5^.5
+    ### index
+        # 0
+            value: 0
+        # 1
+            value: 1
+        # Otherwise
+            value: Fib(i-1).value + Fib(i-2).value
+            # value == If i%2==0 Then (2*p2*p1)*p1 Else p2^2 + p1^2 //Dijkstra's faster algorithm
+
+Type Fib
+    index: Number
+    i: Number
+    seq: Static List Number
+    value: seq[index]
+    half: ceil(i/2)
+    p1: seq(half)
+    p2: seq(half-1)
+    # seq[0] == 0
+    # seq[1] == 0
+    # seq[i] = seq[i-1] + seq[i-2]
+    # seq[i] = (Phi^i - ((-1)^i)/(Phi^i))/5^.5
+    # seq[i] = If i%2 == 0 Then (2*p2*p1)*p1 Else p2^2 + p1^2

@@ -1,0 +1,35 @@
+Type Max
+    a: Number
+    b: Number
+    in: (a,b)
+    out: (a>b)*a + (a<=b)*b
+    res: out
+
+//Called with max(a,b)
+Formula max
+    a: Number
+    b: Number
+    (a>b)*a + (a<=b)*b
+
+Type Double
+    in: Number
+    out: 2*in
+
+Type TMap
+    in: List x
+    f: Type
+    x: Type
+    // out: [y.out for i in input, y=f(i.a,i.b)]
+    out: [y.out for i in input, y=f(in=i)]
+
+//Filter, although should use set notation
+Type Filter
+    in: List x
+    f: Type
+    x: Type
+    ### len(in) //switch statement
+        # 0
+            out: []
+        # Otherwise
+            out: (If f(in[0]) then [in[0]] else []) + Filter(in[1:],f).out
+    # f(in=x).out is Bool //Requirements for f

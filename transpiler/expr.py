@@ -29,9 +29,7 @@ class exprParser:
 
         def getSymbol(s):
             if s in subs: s = subs[s]
-            for sub in subs:
-                if sub + "." in s:
-                    s = s.replace(sub + ".", subs[sub] + ".")
+            s = applySubs(s, subs)
             varSet.add(s) 
             return symbols(s)
 
