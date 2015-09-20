@@ -117,6 +117,12 @@ class Hypergraph:
         node = currentGraph.getNode(split[-1])
         return NodeRef(node=node,parents=tuple(parents))
         
+#TODO Return string
+    def display(self):
+        print(self.nodes)
+        print(self.edges)
+
+
 
 Node = namedtuple('Node', 'graph name')
 Edge = namedtuple('Edge', 'nodes equation')

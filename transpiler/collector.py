@@ -40,14 +40,14 @@ class Collector:
         self.refVars[r] = v
         return r, operation
 
-    def readAtom(self):
-        return {"type":"single"}
+    def readAtom(self, element):
+        return {"type":"atom", "depth": 0,"data":element}
     
-    def readUntil(self, terminator):
-        return {"type":"terminated","terminator":terminator}
+    def readUntil(self, terminator, elements):
+        return {"type":"terminated","terminator":terminator, "elements":elements, "depth": elements[0]['depth'] + 1}
 
     def readOver(self, elements):
-        return {"type":"end", "elements": elements}
+        return {"type":"end", "elements": elements, "depth": elements[0]['depth']+1}
 
     def outExpr(self, expr):
         return {"type":"expr", "expr":expr}

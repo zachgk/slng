@@ -6,9 +6,13 @@ def Error(msg):
 
 def applySubs(expr, subs):
     for s in subs:
-        subStr = '(^|[+*/-])' + s + '\.'
+        subStr = '(^|[\(+*/-])' + s + '\.'
         r = re.compile(subStr)
-        expr = r.sub(subs[s] + '.', expr)
+        if subs[s]:
+            rep = subs[s] + '.'
+        else:
+            rep = ''
+        expr = r.sub(rep, expr)
     return expr
 
 refExpr = re.compile("\{[0-9]+\}")

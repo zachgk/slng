@@ -5,7 +5,7 @@ from compose import compose
 from collector import Collector
 from common import *
 
-
+#TODO Move main graph functions to separate file
 def typeGraph(t, code):
     g = hypergraph.Hypergraph()
     definition = code['types'][t]
@@ -46,72 +46,90 @@ def getVarGraph(variables,code,typeGraphs):
     return g
 
 
-def parseOutputLines(expressions, varGraph, collector):
+def addInputNode(op, refGraph, targetGraph, varGraph, refPath='', targetPath='', subs = dict()):
+    if op['type'] == 'atom':
+        n = hypergraph.Node(name=op['ref'], graph=refGraph)
+        refGraph.nodes.add(n)
+        target = applySubs(op['data'],subs)
+        edgeExpr = refPath + op['ref'] + '=' + targetPath + target
+        edge = getSubEdge(edgeExpr, varGraph)
+        varGraph.edges.add(edge)
+    elif op['over'] == 'type':
+        subgraph = hypergraph.Hypergraph()
+        n = hypergraph.NodeGraph(name=op['ref'], graph=subgraph, parent=refGraph)
+        target = applySubs(op['loopVar'],subs)
+        edgeExpr = refPath + op['ref'] + '=' + targetPath + target
+        edge = getSubEdge(edgeExpr, varGraph)
+        varGraph.nodes.add(n)
+        varGraph.edges.add(edge)
+        subs[op['loopRef']] = ''
+        for el in op['elements']:
+            addInputNode(el, subgraph, targetGraph.getNode(op['loopVar']), varGraph, refPath + op['ref'] + '.', targetPath + target + '.', subs)
+    else:#op['over'] == 'prop'
+        target = applySubs(op['elements'][0]['data'],subs)
+        n = hypergraph.Node(name=target, graph=refGraph)
+        refGraph.nodes.add(n)
+        edgeExpr = refPath + target + '=' + targetPath + target
+        edge = getSubEdge(edgeExpr, varGraph)
+        varGraph.edges.add(edge)
+
+
+#TODO Move exprline functions to separate file
+#TODO check typeGraphs and other potential unused arguments in exprLine functions
+def outputExprLines(expressions, varGraph, typeGraphs, collector):
+    parsedLines = parseExprLines(expressions, varGraph, typeGraphs, collector)
     stream = list()
-    for e in expressions:
-        if type(e) is str:
-            print("fixed output stream")
-            stream.append("1")
-            # stream.append(collector.outExpr(exprParser.parse(e, main=varGraph)))
+    for line in parsedLines:
+        print(line)
+        if line['type'] == 'end':
+            print('some')
+            expr = exprParser.parse(line['elements'][0]['data'], main=varGraph, subs={line['loopRef']:line['loopVar']})
+            print(expr)
         else:
-            if 'prop' in e:
-                print(e)
-                Error('Print list of elements')
-            else:
-                stream.append(collector.outOver(parseOutputLines(e['expressions'], varGraph, collector)))
+            exprParser.parse(line['data'], main=varGraph)
+    Error('done')
     return stream
 
-    
 
+def inputExprLines(expressions, varGraph, typeGraphs, collector):
+    parsedLines = parseExprLines(expressions, varGraph, typeGraphs, collector)
+    for line in parsedLines:
+        ref, op = collector.readFile(line)
+        addInputNode(op, varGraph, varGraph, varGraph)
+
+#TODO Rewrite the mechanism used to differentiate terminated/numbered and over prop/type
 def parseExprLines(expressions, varGraph, typeGraphs, collector, parentGraph=None, subs=dict()):
     if parentGraph is None: parentGraph = varGraph
     stream = list()
     exp_iter = iter(expressions)
     for e in exp_iter:
         if type(e) is str:
-            ref, op = collector.readFile(collector.readAtom())
-            n = hypergraph.Node(name=ref,graph=parentGraph)
-            parentGraph.nodes.add(n)
-            fullExpr = ref + "=" + e
-            edge = getSubEdge(fullExpr,varGraph, subs=subs)
-            parentGraph.edges.add(edge)
-            stream.append(op)
+            l = collector.readAtom(e)
+            stream.append(l)
         else:
-            if 'prop' in e:
+            if 'prop' in e: #is terminated
                 terminator = next(exp_iter)
-                ref, op = collector.readFile(collector.readUntil(terminator))
-                n = hypergraph.Node(name=ref,graph=parentGraph)
-                parentGraph.nodes.add(n)
-                fullExpr = ref + "=" + applySubs(e['prop'],subs)
-                edge = getSubEdge(fullExpr,varGraph, subs=subs)
-                parentGraph.edges.add(edge)
-                stream.append(op)
+                elements = [collector.readAtom(e['prop'])]
+                l = collector.readUntil(terminator, elements)
+                l['over'] = 'prop'
+                stream.append(l)
             else:
                 subs[e['loopRef']] = e['loopVar']
                 elements = parseExprLines(e['expressions'], varGraph, typeGraphs, collector, subs=subs)
-                print(e)
-                print(elements)
-                Error("Set parse")
-                temp = collector.tempDispenser()
-                tempGraph = parentGraph.getNode(e['loopVar']).graph
-                tn = hypergraph.NodeGraph(name=temp, graph=tempGraph, parent=parentGraph)
-                parentGraph.nodes.add(tn)
-                g = hypergraph.Hypergraph()
-                subs[e['loopRef']] = temp
-                elements = parseExprLines(e['expressions'], varGraph, typeGraphs, collector, parentGraph=g, subs=subs)
-                ref, op = collector.readFile(collector.readOver(elements))
-                n = hypergraph.NodeGraph(name=ref, graph=g, parent=parentGraph)
-                parentGraph.nodes.add(n)
-                stream.append(op)
+                l = collector.readOver(elements)
+                l['over'] = 'type'
+                l['loopVar'] = e['loopVar']
+                l['loopRef'] = e['loopRef']
+                stream.append(l)
     return stream
     
 
 def fileParse(f, varGraph, typeGraphs, collector):
     if f['input']:
-        collector.inputFile(f['filename'], parseExprLines(f['expressions'], varGraph, typeGraphs, collector))
+        collector.inputFile(f['filename'], inputExprLines(f['expressions'], varGraph, typeGraphs, collector))
     if f['output']:
         for e in f['expressions']:    
-            collector.outputFile(f['filename'], parseOutputLines(f['expressions'], varGraph, collector))
+            collector.outputFile(f['filename'], outputExprLines(f['expressions'], varGraph, typeGraphs, collector))
 
 with open('code.json') as f:
     collector = Collector()
@@ -124,7 +142,7 @@ with open('code.json') as f:
         for f in code['files']:
             fileParse(f,varGraph, typeGraphs, collector)
     if 'output' in code:
-        collector.outputStandard(parseOutputLines(code['output'], varGraph, collector))
+        collector.outputStandard(outputExprLines(code['output'], varGraph, typeGraphs, collector))
     cpp = compose(collector)
     with open("code.cpp", 'w') as f:
         f.write(cpp)

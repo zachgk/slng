@@ -9,3 +9,8 @@ code.json: code.slng
 	cp code.slng antlrconverter/input.slng
 	$(MAKE) -C antlrconverter    
 	cp antlrconverter/output.json code.json
+
+
+todo:
+	grep -r "TODO" --exclude-dir antlrconverter --exclude-dir pyparsing --exclude makefile
+	cat TODO.txt

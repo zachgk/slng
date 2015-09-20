@@ -47,7 +47,7 @@ class exprParser:
         var = Regex("[a-z][a-zA-Z]*").setParseAction( lambda t: [getSymbol(t[0])])
         lowerName = Regex("[a-z][a-zA-Z]*").setParseAction( lambda t: [t[0]])
         prop = Regex("[a-z][a-zA-Z]*\.[a-z][a-zA-Z]*").setParseAction( lambda t: [getSymbol(t[0])])
-        ref = Regex("\{[0-9]+\}").setParseAction( lambda t: [getSymbol(t[0])])
+        ref = Regex("\{[0-9]+\}(\.[a-z][a-zA-Z]*)?").setParseAction( lambda t: [getSymbol(t[0])])
         string = Regex('"[-0-9a-zA-Z: ]*"').setParseAction( lambda t: [t[0][1:-1]])
 
         opn = {
@@ -66,6 +66,8 @@ class exprParser:
         if main is not None:
             def treeCompute(p):
                 try:
+                    p = applySubs(p, subs)
+                    varSet.add(p)
                     node = main.fromDotRef(p)
                     comp = hypergraph.treeCompute(node)
                     res = solve(comp,symbols(p))
@@ -100,3 +102,6 @@ class exprParser:
         fres = solve(lres,gs)
         if returnEquation: return Eq(gs, fres[gs])
         else: return fres[gs]
+
+if __name__ == "__main__":
+    print(exprParser.parse("{1}.grades=students.grades", equation=True))
