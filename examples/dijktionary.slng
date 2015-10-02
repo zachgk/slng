@@ -1,0 +1,17 @@
+Type DirectChange
+    a: String
+    b: String
+    Type addition
+        weight: 3
+        # a[:i] + {Char in Letters} + a[i:] == b
+
+Set String els
+List String l
+# Change(a=l[i],b=l[i+1])
+# Minimize(sum([a in l] l.weight))
+
+
+File Input input.in
+    [e In els]
+        e.key + " " + e.value
+

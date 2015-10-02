@@ -66,12 +66,13 @@ def treeCompute(nodeRef):
     if res is None: Error("Could not compute " + str(nodeRef))
     return res
 
+#TODO: RefMatchNode should verify that, if it patches on a parent node, the parent nodes also match
 def treeComputeRec(root, tree, returnEquation=False):
     ne = neighborEdges(root)
     rootCycles = {e for e in ne if len(e.nodes)==1}
     if len(rootCycles) > 0:
         return list(rootCycles)[0].equation
-    elif refExpr.match(root.node.name):
+    elif refMatchNode(root):
         return True
     else:
         for r,t in tree.items():
@@ -117,8 +118,7 @@ class Hypergraph:
         node = currentGraph.getNode(split[-1])
         return NodeRef(node=node,parents=tuple(parents))
         
-#TODO Return string
-    def display(self):
+    def print(self):
         print(self.nodes)
         print(self.edges)
 

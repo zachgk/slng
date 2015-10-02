@@ -64,9 +64,7 @@ def compose(collector):
                 total+= line("double " + s)
                 total+= line(var + " >> " + s)
             elif item['type'] == 'end':
-                print("item",item)
                 sub = inputStream(item['elements'], var)
-                print("sub",sub)
                 Error("END")
                 total+=("while(!"+var+".eof())",body);
             else:

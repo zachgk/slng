@@ -13,7 +13,7 @@ class SetSummation (Function):
 
 class exprParser:
     @staticmethod
-    def parse(expression, equation=False, subs=dict(), main=None, returnVars=False):
+    def parse(expression, isEquation=False, subs=dict(), main=None, returnVars=False):
         if not isinstance(expression,str): return expression
 
         varSet = set()
@@ -87,15 +87,16 @@ class exprParser:
 
 
 
-        if equation: res = equality.parseString(expression)[0]
+        if isEquation: res = equality.parseString(expression)[0]
         else: res = expr.parseString(expression)[0]
 
         if returnVars: return varSet
         else: return res
 
+    #TODO: Should not automatically return last found solution in res (res[-1])
     @staticmethod
     def solve(equations, goal, subs=dict(), returnEquation=True):
-        eq = [exprParser.parse(e, equation=True, subs=subs) for e in equations]
+        eq = [exprParser.parse(e, isEquation=True, subs=subs) for e in equations]
         gs = symbols(goal)
         res = solve(eq,dict=True)
         lres = [Eq(x,y) for x,y in res[-1].items()]
@@ -104,4 +105,4 @@ class exprParser:
         else: return fres[gs]
 
 if __name__ == "__main__":
-    print(exprParser.parse("{1}.grades=students.grades", equation=True))
+    print(exprParser.parse("{1}.grades=students.grades", isEquation=True))

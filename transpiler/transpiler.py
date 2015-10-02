@@ -13,7 +13,7 @@ def typeGraph(t, code):
     for p in definition['properties']:
         if 'expression' in p:
             expr = p['binding'] + "=" + p['expression']
-            edgeVars = exprParser.parse(expr,equation=True,returnVars=True)
+            edgeVars = exprParser.parse(expr,isEquation=True,returnVars=True)
             edgeNodes = {hypergraph.Node(name=n,graph=g) for n in edgeVars}
             for n in edgeNodes:
                 if n not in g.nodes and '(' not in n.name: Error(n.name + ' is not defined in type ' + t)
@@ -21,7 +21,7 @@ def typeGraph(t, code):
     return g
 
 def getSubEdge(expr, varGraph, subs=dict()):
-    parse = exprParser.parse(expr,equation=True,returnVars=True, subs=subs)
+    parse = exprParser.parse(expr,isEquation=True,returnVars=True, subs=subs)
     nodes = set()
     for e in parse:
         if '.' in e:
@@ -76,19 +76,16 @@ def addInputNode(op, refGraph, targetGraph, varGraph, refPath='', targetPath='',
 
 #TODO Move exprline functions to separate file
 #TODO check typeGraphs and other potential unused arguments in exprLine functions
+#TODO Should not assume that the depth of a line['type'] is 1 (only contains an atom inside it)
 def outputExprLines(expressions, varGraph, typeGraphs, collector):
     parsedLines = parseExprLines(expressions, varGraph, typeGraphs, collector)
-    stream = list()
     for line in parsedLines:
-        print(line)
         if line['type'] == 'end':
-            print('some')
             expr = exprParser.parse(line['elements'][0]['data'], main=varGraph, subs={line['loopRef']:line['loopVar']})
-            print(expr)
         else:
-            exprParser.parse(line['data'], main=varGraph)
-    Error('done')
-    return stream
+            expr = exprParser.parse(line['data'], main=varGraph)
+        line['expression'] = expr
+    return parsedLines
 
 
 def inputExprLines(expressions, varGraph, typeGraphs, collector):
@@ -96,6 +93,7 @@ def inputExprLines(expressions, varGraph, typeGraphs, collector):
     for line in parsedLines:
         ref, op = collector.readFile(line)
         addInputNode(op, varGraph, varGraph, varGraph)
+    return parsedLines
 
 #TODO Rewrite the mechanism used to differentiate terminated/numbered and over prop/type
 def parseExprLines(expressions, varGraph, typeGraphs, collector, parentGraph=None, subs=dict()):

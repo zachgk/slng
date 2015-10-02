@@ -16,3 +16,11 @@ def applySubs(expr, subs):
     return expr
 
 refExpr = re.compile("\{[0-9]+\}")
+def refMatchNode(node):
+    if refExpr.match(node.node.name):
+        return True
+    for p in node.parents:
+        if refExpr.match(p.nodeGraph.name):
+            return True
+    return False
+
