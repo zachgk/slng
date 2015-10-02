@@ -1,14 +1,16 @@
+Import Vector
+
 Type Planet
-	radius: Number
-	mass: Number
-	position: Vector	
-	position: position + velocity*Time
-	velocity: Vector
-	velocity: velocity + acceleration*Time
-	force: Vector
-	acceleration: force/mass
+    radius: Number
+    mass: Number
+    position: Vector	
+    position: position + velocity*Time
+    velocity: Vector
+    velocity: velocity + acceleration*Time
+    force: Vector
+    acceleration: force/mass
 
 Type System
-	Set Planet planets
-	Bind [p In planets]
-		p.force = sum([other In (planets-p)] 6.676E-11*p.mass*other.mass/distance(p.position,other.position)^2)
+    planets: Set Planet
+    [p In planets]
+        p.force = sum( 6.676E-11*p.mass*other.mass/distance(p.position,other.position)^2 For other In (planets-p))

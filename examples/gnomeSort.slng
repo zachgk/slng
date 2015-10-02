@@ -1,11 +1,15 @@
 Type GnomeSet
-	setGnomes: Set{Int}
+	setGnomes: Set Int
 	
+numberGnomes: Int
+gnomes: Set GnomeSet
+# len(gnomes) == numberGnomes
+
 File LineASCII Input gnomes.in
 	numberGnomes
-	[g In numberGnomes GnomeSet gnomes]
+	[g In gnomes]
 		g.setGnomes	
 
 File LineASCII Output gnomes.out
 	[g In gnomes]
-		g.setGnomes | Order Ascending
+		g.setGnomes Order Ascending

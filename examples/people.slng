@@ -1,7 +1,9 @@
 Type Person
-	money: Positive Number
-	salary: Positive Number
+	money: Number
+	salary: Number
 	Default State working
+    # money >= 0
+    # salary >= 0
 
 	State eating
 		->

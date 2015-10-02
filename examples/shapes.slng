@@ -1,43 +1,46 @@
-Property Set $points: Vector
-Property $area: Number
+import unitVectors, pi, zeroToOne, Vector
 
 Type Circle
 	radius: Number
 	center: Vector
-	$area: pi*radius^2
-	$points: center+radius*UnitVector
+	area: pi*radius^2
+	points: { center+radius*v For v In unitVectors }
 
 Type Line
-	DistinctSet 2 edges: Vector
+    edges: Set Vector
 	length: distance(edge[0],edge[1])
-	$points: edge[0]+ZeroToOne*edge[1]-edge[0]
+	points: { edge[0]+n*edge[1] For n In zeroToOne }
+    # len(edges) == 2
 	
 Type Triangle
-	DistinctSet 3 vertices: Vector
-	Set lines: [vertices Combination As a,b]
-		Line(edges=[a,b])
-	$points: lines[0].points
-	perimeter: sum(lines[0].length)
+    vertices: Set Vector
+	Set lines: [ Line(edges=[a,b]) For a In vertices For b In Vertices Where a<b]
+	points: sum(lines.points)
+	perimeter: sum(lines[i].length) ForAll i
 	semiperimeter: perimeter/2
-	$area: sqrt(sum(semiperimeter-lines[0].length)/semiperimeter)
+	area: sqrt(sum(semiperimeter-lines[i].length ForAll i)/semiperimeter)
+    # len(vertices) == 3
 
 Type CircumscribedTriangle
 	triangle: Triangle
 	circle: Circle
-	# len(Union(triangle.points-triangle.edges,circle.points))==3
+	# len( (triangle.points-triangle.vertices) * circle.points ) == 3
 
 Type InscribedTriangle
 	triangle: Triangle
 	circle: Circle
-	# len(Union(triangle.vertices,circle.points))==3
+	# triangle.vertices <= circle.points
 
 
-Example Program:
+//Example Program:
 c = Circle(radius=5)
 outer = Triangle()
 inner = Triangle()
 # InscribedTriangle(triangle=inner,circle=c)
 # CircumscribedTriangle(triangle=outer,circle=c)
-# min(outer.area) 
-# max(inner.area)
-Output outer.area-inner.area
+# Minimize outer.area
+# Maximize inner.area
+
+
+Output
+    outer.area-inner.area

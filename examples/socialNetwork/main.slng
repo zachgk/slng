@@ -1,11 +1,14 @@
+Import Password, Route
+
 Database
-	Set User users
+	users: Set User
 
 Type User
 	name: String
     username: String
-    Secret password: String
-	Symmetric Set friends: User
+    password: Password
+    friends: Set User
+    # This In friends[i].friends ForAll i
 
 State authenticated
     ->
@@ -19,9 +22,8 @@ State authenticated
 
 Action
     # newFriendSubmit && User(username=newFriendName) In users
-    user.friends += users{Element(username=newFriendName)}
+    user.friends += { u For u In users Where u.username=newFriendName }[0]
 
 
-Serve
-    "/login" -> login.html
-    "/" -> index.html
+Route "/login" Serve login.html
+Route "/" Serve index.html

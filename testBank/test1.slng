@@ -7,7 +7,7 @@ Type Square
     length: Number
     area: length*length
 
-Let c = Circle(radius=5)
+c = Circle(radius=5)
 s = Square(area=c.area)
 
 Output

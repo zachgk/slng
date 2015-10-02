@@ -10,7 +10,7 @@ Type Square
 File Text Input input.in
     c.radius
 
-Let c = Circle()
+c = Circle()
 s = Square(area=c.area)
 
 Output

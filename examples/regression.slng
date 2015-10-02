@@ -1,15 +1,19 @@
 Type Data
-    Set 5 x: Number
+    x: Set Number
     y: ???
+    # len(x) == 5
+
+data = Set Data
+unknowns = Set Data
 
 File CSV Input regression.in
-    [d in Data data]
+    [d In data]
         d.x, d.y
 
 File CSV Input unknowns.in
-    [d in Data unknowns]
+    [d In unknowns]
         d.x
 
-File CSV regression.out
-    [d in Data unknowns]
+File CSV Output regression.out
+    [d In unknowns]
         d.y
